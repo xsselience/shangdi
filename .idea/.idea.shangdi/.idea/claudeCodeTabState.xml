@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="ClaudeCodeTabState">
+    <option name="tabSessions">
+      <map>
+        <entry key="0">
+          <value>
+            <TabSessionState>
+              <option name="provider" value="claude" />
+              <option name="sessionId" value="1174797b-8e98-4c69-b7a8-4c2579f2a68b" />
+              <option name="cwd" value="D:\dev\workspace\code\unity\shangdi" />
+              <option name="model" value="claude-fable-5[1m]" />
+              <option name="permissionMode" value="plan" />
+              <option name="reasoningEffort" value="medium" />
+            </TabSessionState>
+          </value>
+        </entry>
+      </map>
+    </option>
+  </component>
+</project>

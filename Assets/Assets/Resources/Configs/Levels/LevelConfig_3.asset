@@ -1,0 +1,25 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ac759fc4568f4a5db0e97eb7a1061dbb, type: 3}
+  m_Name: LevelConfig_3
+  m_EditorClassIdentifier: 
+  levelId: 3
+  levelOrder: 3
+  levelName: "\u70C8\u7130\u5F00\u8DEF"
+  boardId: 1
+  initSteps: 25
+  initPieceCount: 8
+  taskType: Escort
+  taskDesc: "\u5F85\u5B9A"
+  taskPreview: "\u5F85\u5B9A"
+  remark: "\u7B2C3\u81F35\u5173\u8BBE\u8BA1\u672A\u5B9A"
+  timeLimit: 60

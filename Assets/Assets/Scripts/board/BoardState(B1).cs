@@ -101,15 +101,12 @@ namespace Game.Board
 
         /// <summary>
         /// 判断能否将棋子移动到指定位置。
-        /// 只检查相邻、有无棋子等底层条件。
+        /// 允许直接移动到全棋盘任意可操作、无障碍的空格，不检查距离或路径。
         /// 不检查步数、不改变棋盘状态。
         /// </summary>
         public bool CanTransferPiece(GridCoord from, GridCoord to)
         {
             if (!IsInside(from) || !IsInside(to)) return false;
-            int distanceX = Math.Abs(to.X - from.X);
-            int distanceY = Math.Abs(to.Y - from.Y);
-            if (distanceX + distanceY != 1) return false;
 
             CellState fromCell = GetCell(from);
             CellState toCell = GetCell(to);
@@ -121,7 +118,7 @@ namespace Game.Board
 
         /// <summary>
         /// 获取棋子当前所有合法的移动目标。
-        /// 返回的列表包含所有的格子坐标。
+        /// 返回全棋盘内所有合法目标的坐标，不受距离、方向或途中阻挡影响。
         /// 不移动棋子，不改变棋盘。
         /// 没有合法目标时返回空列表。
         /// </summary>
@@ -130,22 +127,24 @@ namespace Game.Board
             List<GridCoord> availableMoves = new List<GridCoord>();
             if (!IsInside(from)) return availableMoves;
 
-            GridCoord[] neighbors = new GridCoord[]
-            {
-                from.Offset(1, 0), from.Offset(-1, 0),
-                from.Offset(0, 1), from.Offset(0, -1)
-            };
+            CellState fromCell = GetCell(from);
+            if (!fromCell.CanOperate || fromCell.HasObstacle || !fromCell.HasPiece)
+                return availableMoves;
 
-            foreach (GridCoord target in neighbors)
+            for (int y = 0; y < height; y++)
             {
-                if (CanTransferPiece(from, target))
-                    availableMoves.Add(target);
+                for (int x = 0; x < width; x++)
+                {
+                    GridCoord target = new GridCoord(x, y);
+                    if (CanTransferPiece(from, target))
+                        availableMoves.Add(target);
+                }
             }
             return availableMoves;
         }
 
         /// <summary>
-        /// 尝试将棋子移动到相邻的一格。
+        /// 尝试将棋子直接移动到全棋盘任意合法空格。
         /// 成功返回 true，检查失败返回 false。
         /// 本方法只负责转移，不触发合成和刷新。
         /// </summary>

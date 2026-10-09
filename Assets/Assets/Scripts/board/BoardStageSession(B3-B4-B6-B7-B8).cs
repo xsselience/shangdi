@@ -268,7 +268,7 @@ namespace Game.Board
         /// <summary>
         /// 可操作且无障碍的格子全有棋子才算填满。
         /// CanSpawn 只限制刷新，不改变棋盘容量；没有任何可操作格不算填满。
-        /// 没有合法相邻移动，不是新增的第四种结束条件。
+        /// 没有合法移动，不是新增的第四种结束条件。
         /// </summary>
         public static bool IsBoardFilled(BoardState board)
         {

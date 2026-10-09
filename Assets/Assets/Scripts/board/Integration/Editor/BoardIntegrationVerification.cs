@@ -35,6 +35,7 @@ public static class BoardIntegrationVerification
     public static void Run()
     {
         if (EditorApplication.isPlaying) throw new InvalidOperationException("请先退出 Play Mode。");
+        foreach (string check in BoardMovementVerification.Verify()) Require(true, check);
         SessionState.SetBool(Key, true);
         EditorSceneManager.OpenScene("Assets/Scenes/StartScreen.unity");
         Subscribe();
@@ -103,10 +104,10 @@ public static class BoardIntegrationVerification
                     steps = bridge.Session.RemainingSteps;
                     PressCell(from);
                     Require(bridge.HasSelection && bridge.SelectedCoord == from, "真实格子 Button 点击选中棋子");
-                    var invalid = new GridCoord((from.X + 3) % 10, (from.Y + 3) % 10);
+                    Require(Math.Abs(to.X - from.X) + Math.Abs(to.Y - from.Y) > 1, "测试目标为非相邻的远距离空格");
+                    var invalid = new GridCoord(-1, from.Y);
                     Require(!bridge.ClickCell(invalid) && bridge.Session.RemainingSteps == steps, "非法移动不扣步数");
-                    PressCell(from); // 如果非法目标上有棋子，可能切换选中；重新确定选择。
-                    if (!bridge.HasSelection || bridge.SelectedCoord != from) PressCell(from);
+                    Require(bridge.HasSelection && bridge.SelectedCoord == from, "非法目标不改变当前选中棋子");
                     PressCell(to);
                     Require(bridge.Board.GetCell(to).HasPiece && bridge.Board.GetCell(to).Piece.Id == pieceId &&
                             bridge.Session.RemainingSteps == steps - 1 && CountPieces() == 9,
@@ -231,9 +232,10 @@ public static class BoardIntegrationVerification
     {
         for (int y = 0; y < bridge.Board.Height; y++) for (int x = 0; x < bridge.Board.Width; x++)
         {
-            source = new GridCoord(x, y);
+            var coordFrom = new GridCoord(x, y);
+            source = coordFrom;
             var moves = bridge.Board.GetAvailableMoves(source);
-            if (moves.Count > 0) { target = moves[0]; return; }
+            if (moves.Count > 0) { target = moves.OrderByDescending(coord => Math.Abs(coord.X - coordFrom.X) + Math.Abs(coord.Y - coordFrom.Y)).First(); return; }
         }
         throw new InvalidOperationException("找不到合法测试移动。");
     }

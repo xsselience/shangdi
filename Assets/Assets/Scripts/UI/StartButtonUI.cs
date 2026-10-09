@@ -1,42 +1,43 @@
 using UnityEngine;
+using Game.Board;
 
 public class StartButtonUI : MonoBehaviour
 {
-    public enum Stage { None, One, Two }
+    public enum Stage { None, FirstBoard, SecondBoard }
 
-    [Header("UI 面板（原有）")]
+    [Header("UI 面板")]
     [SerializeField] private RectTransform mainScreen;
     [SerializeField] private RectTransform subScreen;
 
     [Header("第一棋盘")]
-    [Tooltip("第一棋盘的根物体。留空则不处理")]
     [SerializeField] private Transform firstBoard;
-
-    [Tooltip("开始状态 / 第一阶段 的缩放")]
-    [SerializeField] private float firstScaleStart = 1f;
-
-    [Tooltip("第二阶段 的缩放")]
-    [SerializeField] private float firstScaleStageTwo = 0.9f;
+    [SerializeField] private float firstScaleOnFirstBoard = 1f;
+    [SerializeField] private float firstScaleOnSecondBoard = 0.9f;
 
     [Header("第二棋盘")]
-    [Tooltip("第二棋盘的根物体（我们做的世界棋盘）")]
     [SerializeField] private Transform secondBoard;
-
-    [Tooltip("开始状态 / 第一阶段 的缩放")]
-    [SerializeField] private float secondScaleStart = 0.7f;
-
-    [Tooltip("第二阶段 的缩放")]
-    [SerializeField] private float secondScaleStageTwo = 1f;
+    [SerializeField] private float secondScaleOnFirstBoard = 0.7f;
+    [SerializeField] private float secondScaleOnSecondBoard = 1f;
 
     [Header("流程")]
-    [Tooltip("第二阶段的 A / B 行动由它驱动")]
+    [SerializeField] private BoardSceneBridge boardBridge;
     [SerializeField] private BattleFlow battleFlow;
 
-    [Tooltip("勾上则结算后连地图一起重置（清空营地、地形还原）")]
-    [SerializeField] private bool fullResetOnReturn = false;
+    [Header("章节")]
+    [Tooltip("一共几章。每一章 = 第一棋盘一个阶段 + 第二棋盘一轮")]
+    [SerializeField] private int maxChapter = 5;
+
+    [Tooltip("失败重来时是否连地图一起完全重置（默认否：保留已经建好的营地）")]
+    [SerializeField] private bool fullResetOnFailure = false;
 
     [Header("运行时状态")]
     [SerializeField] private Stage stage = Stage.None;
+
+    [Tooltip("1 起。0 表示还没开始")]
+    [SerializeField] private int currentChapter;
+
+    public Stage CurrentStage { get { return stage; } }
+    public int CurrentChapter { get { return currentChapter; } }
 
     // ─────────────────────────────────────────────
     //  生命周期
@@ -44,14 +45,14 @@ public class StartButtonUI : MonoBehaviour
     private void OnEnable()
     {
         GameEventCenter.Instance.GameStateChanged += OnGameStateChanged;
+        if (boardBridge != null) boardBridge.StageSettled += OnFirstBoardSettled;
     }
 
     private void OnDisable()
     {
-        if (GameEventCenter.Instance == null)
-            return;
-
-        GameEventCenter.Instance.GameStateChanged -= OnGameStateChanged;
+        if (GameEventCenter.Instance != null)
+            GameEventCenter.Instance.GameStateChanged -= OnGameStateChanged;
+        if (boardBridge != null) boardBridge.StageSettled -= OnFirstBoardSettled;
     }
 
     private void Start()
@@ -59,8 +60,8 @@ public class StartButtonUI : MonoBehaviour
         var gm = GameManager.Instance;
         bool playing = gm != null && gm.CurrentState == GameState.Playing;
 
-        if (playing) EnterStageOne();
-        else ReturnToStart();
+        if (playing) BeginChapter(1);
+        else ApplyBoardScales(false);       // 还没开始，只摆视觉，不动流程
     }
 
     private void OnGameStateChanged(GameState state)
@@ -72,63 +73,47 @@ public class StartButtonUI : MonoBehaviour
                 break;
 
             case GameState.Playing:
-                EnterStageOne();
+                // 只在还没开始的时候启动，避免运行中被打断重来
+                if (stage == Stage.None) BeginChapter(1);
                 break;
         }
     }
 
-    // ═════════════════════════════════════════════
-    //  开始 / 第一阶段
-    // ═════════════════════════════════════════════
-    private void EnterStageOne()
+    // ─────────────────────────────────────────────
+    //  章节循环
+    // ─────────────────────────────────────────────
+    /// <summary>开始（或重来）第 chapter 章。第一棋盘会被重置到这个阶段的初始状态。</summary>
+    public void BeginChapter(int chapter)
     {
-        stage = Stage.One;
+        currentChapter = Mathf.Clamp(chapter, 1, maxChapter);
+        stage = Stage.FirstBoard;
 
-        mainScreen.localScale = Vector3.one;
-        subScreen.localScale = Vector3.one;
+        ApplyBoardScales(false);
 
-        SetBoardScales(firstScaleStart, secondScaleStart);
+        RunChapterBegin(currentChapter);
 
-        // ═══════════════════════════════════════════════════════
-        //  ▼▼▼  留空：第一棋盘的环节写在这里  ▼▼▼
-        //
-        //  现在这里什么都不做，靠"测试按钮"手动结束第一阶段。
-        //  以后接上真正的第一棋盘逻辑，结束时调用 EndStageOne()。
-        // ═══════════════════════════════════════════════════════
-        // ═══════════════════════════════════════════════════════
-        //  ▲▲▲  留空结束  ▲▲▲
-        // ═══════════════════════════════════════════════════════
+        if (boardBridge != null) boardBridge.RunStage(currentChapter - 1);
+        else Debug.LogWarning("StartButtonUI: boardBridge 未指定，第一棋盘不会启动", this);
 
-        Debug.Log("StartButtonUI: 进入第一阶段（第一棋盘大 / 第二棋盘小）", this);
+        Debug.Log("StartButtonUI: 第 " + currentChapter + " 章开始（第一棋盘阶段 " + currentChapter + "）", this);
     }
 
-    // 测试按钮接这个
-    public void OnClickEndStageOne() => EndStageOne();
-
-    public void EndStageOne()
+    // 第一棋盘当前阶段跑完
+    private void OnFirstBoardSettled(BoardSettlementResult settlement)
     {
-        if (stage != Stage.One)
-        {
-            Debug.Log($"StartButtonUI: 当前阶段是 {stage}，无法结束第一阶段", this);
-            return;
-        }
+        if (stage != Stage.FirstBoard) return;
 
-        EnterStageTwo();
+        Debug.Log("StartButtonUI: 第 " + currentChapter + " 章 —— 步数耗尽，用 " + settlement.UsedSteps + " 步", this);
+        EnterSecondBoard();
     }
 
-    // ═════════════════════════════════════════════
-    //  第二阶段：第二棋盘放大，单位开始行动
-    // ═════════════════════════════════════════════
-    private void EnterStageTwo()
+    public void EnterSecondBoard()
     {
-        stage = Stage.Two;
+        stage = Stage.SecondBoard;
 
-        mainScreen.localScale = Vector3.one * 0.9f;
-        subScreen.localScale = Vector3.one * 1.1f;
+        ApplyBoardScales(true);
 
-        SetBoardScales(firstScaleStageTwo, secondScaleStageTwo);
-
-        Debug.Log("StartButtonUI: 进入第二阶段（第一棋盘小 / 第二棋盘大），单位开始行动", this);
+        Debug.Log("StartButtonUI: 第 " + currentChapter + " 章 —— 进入第二棋盘，A / B 开始行动", this);
 
         if (battleFlow == null)
         {
@@ -139,31 +124,54 @@ public class StartButtonUI : MonoBehaviour
         battleFlow.StartBattle();
     }
 
-    // ═════════════════════════════════════════════
-    //  结算后回到开始状态
-    //  胜利面板和失败面板的按钮都接这个
-    // ═════════════════════════════════════════════
-    public void ReturnToStart()
+    // ─────────────────────────────────────────────
+    //  第二棋盘结算
+    // ─────────────────────────────────────────────
+    /// <summary>失败面板的按钮接这个。</summary>
+    public void OnClickRaceFailed()
     {
-        stage = Stage.One;
+        if (stage != Stage.SecondBoard)
+        {
+            Debug.Log("StartButtonUI: 当前不在第二棋盘，忽略失败结算", this);
+            return;
+        }
 
-        mainScreen.localScale = Vector3.one;
-        subScreen.localScale = Vector3.one;
-
-        SetBoardScales(firstScaleStart, secondScaleStart);
+        Debug.Log("StartButtonUI: 第 " + currentChapter + " 章失败，重来本阶段", this);
 
         if (battleFlow != null)
         {
-            if (fullResetOnReturn) battleFlow.ResetEverything();
-            else battleFlow.ResetToPreBattle();
+            if (fullResetOnFailure) battleFlow.ResetEverything();
+            else battleFlow.ResetToPreBattle();   // 地图和营地保留，A / B 归位
         }
 
-        Debug.Log("StartButtonUI: 已回到开始状态（第一棋盘大 / 第二棋盘小）", this);
+        BeginChapter(currentChapter);       // 重来同一章
     }
 
-    // ═════════════════════════════════════════════
-    //  开始按钮（原有）
-    // ═════════════════════════════════════════════
+    /// <summary>成功面板的按钮接这个。</summary>
+    public void OnClickRaceSucceeded()
+    {
+        if (stage != Stage.SecondBoard)
+        {
+            Debug.Log("StartButtonUI: 当前不在第二棋盘，忽略成功结算", this);
+            return;
+        }
+
+        // B 原地建营地 + A / B 归位，地图与已有营地保留
+        if (battleFlow != null) battleFlow.ContinueToNextStage();
+
+        if (currentChapter >= maxChapter)
+        {
+            Debug.Log("StartButtonUI: " + maxChapter + " 章全部完成", this);
+            RunAllChaptersCleared();
+            return;
+        }
+
+        BeginChapter(currentChapter + 1);
+    }
+
+    // ─────────────────────────────────────────────
+    //  开始按钮
+    // ─────────────────────────────────────────────
     public void OnClickStartLevel()
     {
         GameState state = GameManager.Instance.CurrentState;
@@ -178,9 +186,60 @@ public class StartButtonUI : MonoBehaviour
         }
     }
 
-    private void SetBoardScales(float first, float second)
+    // ─────────────────────────────────────────────
+    //  回到开始状态
+    // ─────────────────────────────────────────────
+    public void ReturnToStart()
     {
-        if (firstBoard != null) firstBoard.localScale = Vector3.one * first;
-        if (secondBoard != null) secondBoard.localScale = Vector3.one * second;
+        stage = Stage.None;
+        currentChapter = 0;
+
+        ApplyBoardScales(false);
+
+        if (battleFlow != null) battleFlow.ResetEverything();
+        if (boardBridge != null) boardBridge.ResetBoard();
+
+        Debug.Log("StartButtonUI: 已回到开始状态（第一棋盘大 / 第二棋盘小）", this);
     }
+
+    // ─────────────────────────────────────────────
+    //  视觉
+    // ─────────────────────────────────────────────
+    private void ApplyBoardScales(bool secondBoardActive)
+    {
+        mainScreen.localScale = secondBoardActive ? Vector3.one * 0.9f : Vector3.one;
+        subScreen.localScale = secondBoardActive ? Vector3.one * 1.1f : Vector3.one;
+
+        if (firstBoard != null)
+            firstBoard.localScale = Vector3.one *
+                (secondBoardActive ? firstScaleOnSecondBoard : firstScaleOnFirstBoard);
+
+        if (secondBoard != null)
+            secondBoard.localScale = Vector3.one *
+                (secondBoardActive ? secondScaleOnSecondBoard : secondScaleOnFirstBoard);
+    }
+
+    // ═══════════════════════════════════════════════════════
+    //  ▼▼▼  留空：每一章开始时要做的事  ▼▼▼
+    //
+    //  chapter 从 1 开始。每章各自的演出 / 提示写在这里。
+    //  注意这时第一棋盘还没重建，需要它先就绪的话
+    //  把你的逻辑挂到 boardBridge.On Stage Begin 上。
+    // ═══════════════════════════════════════════════════════
+    private void RunChapterBegin(int chapter)
+    {
+    }
+    // ═══════════════════════════════════════════════════════
+    //  ▲▲▲  留空结束  ▲▲▲
+    // ═══════════════════════════════════════════════════════
+
+    // ═══════════════════════════════════════════════════════
+    //  ▼▼▼  留空：全部章节完成时要做的事  ▼▼▼
+    // ═══════════════════════════════════════════════════════
+    private void RunAllChaptersCleared()
+    {
+    }
+    // ═══════════════════════════════════════════════════════
+    //  ▲▲▲  留空结束  ▲▲▲
+    // ═══════════════════════════════════════════════════════
 }

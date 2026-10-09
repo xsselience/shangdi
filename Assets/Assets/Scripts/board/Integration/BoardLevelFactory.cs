@@ -12,7 +12,12 @@ namespace Game.Board
             ElementType.Fire, ElementType.Water, ElementType.Wind, ElementType.ground
         };
 
-        public static BoardStageSession Create(LevelConfig level, BoardLayoutConfig layout)
+        /// <summary>
+        /// stepOverride 传小于 0 或 null 时，使用关卡表里的 init_steps。
+        /// 这个参数只影响本次创建的 session，不会写回 LevelConfig。
+        /// </summary>
+        public static BoardStageSession Create(LevelConfig level, BoardLayoutConfig layout,
+            int? stepOverride = null)
         {
             if (level == null) throw new ArgumentNullException(nameof(level));
             BoardConfig config = Resources.Load<BoardConfig>("Configs/Boards/BoardConfig_" + level.BoardId);
@@ -29,7 +34,12 @@ namespace Game.Board
                 if (!spawn.Success)
                     throw new InvalidOperationException("第 " + (i + 1) + " 个初始棋子生成失败：" + spawn.FailureReason);
             }
-            return new BoardStageSession(initial.Board, level.InitSteps, rules, SpawnContext.Neutral);
+
+            int steps = (stepOverride.HasValue && stepOverride.Value >= 0)
+                ? stepOverride.Value
+                : level.InitSteps;
+
+            return new BoardStageSession(initial.Board, steps, rules, SpawnContext.Neutral);
         }
 
         /// <summary>
@@ -64,17 +74,17 @@ namespace Game.Board
                 return new SpawnRules(areas.ToArray(), Elements, DefaultElementWeights.Create(), weights.ToArray());
             }
             for (int y = 0; y < height; y++)
-            for (int x = 0; x < width; x++)
-            {
-                foreach (RefreshZoneConfig zone in zones)
+                for (int x = 0; x < width; x++)
                 {
-                    if (x < zone.RectX1 || x > zone.RectX2 || y < zone.RectY1 || y > zone.RectY2) continue;
-                    var area = new SpawnArea(x, y, 1, 1);
-                    areas.Add(area);
-                    weights.Add(new RegionWeightRule(area, ReadWeights(zone)));
-                    break;
+                    foreach (RefreshZoneConfig zone in zones)
+                    {
+                        if (x < zone.RectX1 || x > zone.RectX2 || y < zone.RectY1 || y > zone.RectY2) continue;
+                        var area = new SpawnArea(x, y, 1, 1);
+                        areas.Add(area);
+                        weights.Add(new RegionWeightRule(area, ReadWeights(zone)));
+                        break;
+                    }
                 }
-            }
             if (areas.Count == 0) throw new InvalidOperationException("刷新区域没有覆盖棋盘：关卡 " + levelId);
             return new SpawnRules(areas.ToArray(), Elements, new ElementWeights(1, 1, 1, 1), weights.ToArray());
         }

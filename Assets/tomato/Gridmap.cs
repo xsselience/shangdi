@@ -1,13 +1,16 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 public enum TileType { Ground, Wall }
 
+public enum SpecialElement { None = 0, Fire = 1, Water = 2, Wind = 3, Ground = 4 }
+
 public class Gridmap : MonoBehaviour
 {
     [Header("棋盘尺寸")]
-    public int width = 12;
-    public int height = 8;
+    public int width = 10;
+    public int height = 10;
     public float cellSize = 1f;
 
     [Header("支点")]
@@ -18,7 +21,7 @@ public class Gridmap : MonoBehaviour
     public Vector2 originOffset = Vector2.zero;
 
     [Header("编辑权限")]
-    [Tooltip("关掉后 Set() 一律被拒绝。开战时会自动关掉。只管地形，不管营地")]
+    [Tooltip("关掉后 Set() 一律被拒绝。开战时会自动关掉。只管地形")]
     public bool editable = true;
 
     [Header("营地")]
@@ -29,6 +32,7 @@ public class Gridmap : MonoBehaviour
 
     TileType[] _tiles;
     bool[] _camps;
+    SpecialElement[] _specials;
 
     TileType[] Tiles
     {
@@ -47,6 +51,16 @@ public class Gridmap : MonoBehaviour
             if (_camps == null || _camps.Length != width * height)
                 _camps = new bool[width * height];
             return _camps;
+        }
+    }
+
+    SpecialElement[] Specials
+    {
+        get
+        {
+            if (_specials == null || _specials.Length != width * height)
+                _specials = new SpecialElement[width * height];
+            return _specials;
         }
     }
 
@@ -121,7 +135,40 @@ public class Gridmap : MonoBehaviour
         return n;
     }
 
-    // ── 快照（只管地形，不碰营地）──
+    // ── 特殊棋子（第三层，跨章保留）──
+    public SpecialElement GetSpecial(Vector2Int c) =>
+        InBounds(c) ? Specials[c.y * width + c.x] : SpecialElement.None;
+
+    /// <summary>写入一格。传 None 等同于移除。</summary>
+    public bool SetSpecial(Vector2Int c, SpecialElement element)
+    {
+        if (!InBounds(c)) return false;
+
+        int i = c.y * width + c.x;
+        if (Specials[i] == element) return false;
+
+        Specials[i] = element;
+        OnChanged?.Invoke();
+        return true;
+    }
+
+    [ContextMenu("清空特殊棋子")]
+    public void ClearSpecials()
+    {
+        var a = Specials;
+        for (int i = 0; i < a.Length; i++) a[i] = SpecialElement.None;
+        OnChanged?.Invoke();
+    }
+
+    public int SpecialCount()
+    {
+        int n = 0;
+        var a = Specials;
+        for (int i = 0; i < a.Length; i++) if (a[i] != SpecialElement.None) n++;
+        return n;
+    }
+
+    // ── 快照：只管地形 ──
     public TileType[] CaptureSnapshot()
     {
         var copy = new TileType[width * height];
@@ -137,10 +184,7 @@ public class Gridmap : MonoBehaviour
         OnChanged?.Invoke();
     }
 
-    // ══════════════════════════════════════════════
-    //  坐标换算：唯一出口
-    //  本地原点 = anchor 指示的那个点
-    // ══════════════════════════════════════════════
+    // ── 坐标换算 ──
     public Vector3 CellCenterLocal(Vector2Int c) => new Vector3(
         originOffset.x + (c.x + 0.5f - width * (0.5f + anchor.x)) * cellSize,
         originOffset.y + (c.y + 0.5f - height * (0.5f + anchor.y)) * cellSize,
@@ -149,7 +193,6 @@ public class Gridmap : MonoBehaviour
     public Vector3 CellCenterWorld(Vector2Int c) =>
         transform.TransformPoint(CellCenterLocal(c));
 
-    // 棋盘几何中心在本地空间的位置
     public Vector3 BoardCenterLocal => new Vector3(
         originOffset.x - anchor.x * width * cellSize,
         originOffset.y - anchor.y * height * cellSize,
@@ -174,7 +217,8 @@ public class Gridmap : MonoBehaviour
             {
                 var c = new Vector2Int(x, y);
 
-                if (HasCamp(c)) Gizmos.color = new Color(1f, 0.4f, 0.4f, 0.45f);
+                if (GetSpecial(c) != SpecialElement.None) Gizmos.color = new Color(0.6f, 0.9f, 1f, 0.6f);
+                else if (HasCamp(c)) Gizmos.color = new Color(1f, 0.4f, 0.4f, 0.45f);
                 else if (Get(c) == TileType.Wall) Gizmos.color = new Color(1f, 1f, 1f, 0.30f);
                 else Gizmos.color = new Color(1f, 1f, 1f, 0.06f);
 

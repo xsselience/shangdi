@@ -10,7 +10,11 @@ public class Gridmap : MonoBehaviour
     public int height = 8;
     public float cellSize = 1f;
 
-    [Header("位置微调")]
+    [Header("支点")]
+    [Tooltip("缩放/旋转的支点，归一化坐标。(-0.5,-0.5)=左下角，(0,0)=中心，(0,0.5)=正上方中点")]
+    public Vector2 anchor = new Vector2(0f, 0.5f);
+
+    [Tooltip("支点额外偏移（世界单位）。正常留 0")]
     public Vector2 originOffset = Vector2.zero;
 
     [Header("编辑权限")]
@@ -18,11 +22,9 @@ public class Gridmap : MonoBehaviour
     public bool editable = true;
 
     [Header("营地")]
-    [Tooltip("营地对寻路的额外代价。0 = A* 完全无视营地")]
-    public int campCostPenalty = 4;
+    [Tooltip("营地对寻路的额外代价。0 = A* 忽略营地")]
+    public int campCostPenalty = 0;
 
-    // 棋盘状态变了（地形或营地）。
-    // GridRenderer 重画、路径重算，都靠这一个事件
     public event Action OnChanged;
 
     TileType[] _tiles;
@@ -57,7 +59,6 @@ public class Gridmap : MonoBehaviour
     public bool Walkable(Vector2Int c) =>
         InBounds(c) && Get(c) != TileType.Wall;
 
-    // ── 寻路代价 ─────────────────────────────────
     public int Cost(Vector2Int c)
     {
         int cost = 1;
@@ -65,7 +66,6 @@ public class Gridmap : MonoBehaviour
         return cost;
     }
 
-    // ── 地形写入（受 editable 管辖）────────────────
     public bool Set(Vector2Int c, TileType t)
     {
         if (!editable) return false;
@@ -79,7 +79,7 @@ public class Gridmap : MonoBehaviour
         return true;
     }
 
-    // ── 营地（不受 editable 管辖，营地是游戏行为不是玩家编辑）──
+    // ── 营地 ──
     public bool HasCamp(Vector2Int c) => InBounds(c) && Camps[c.y * width + c.x];
 
     public bool AddCamp(Vector2Int c)
@@ -121,7 +121,7 @@ public class Gridmap : MonoBehaviour
         return n;
     }
 
-    // ── 快照：只管地形，不碰营地 ──────────────────
+    // ── 快照（只管地形，不碰营地）──
     public TileType[] CaptureSnapshot()
     {
         var copy = new TileType[width * height];
@@ -137,19 +137,25 @@ public class Gridmap : MonoBehaviour
         OnChanged?.Invoke();
     }
 
-    // ── 坐标换算：唯一出口 ─────────────────────────
+    // ══════════════════════════════════════════════
+    //  坐标换算：唯一出口
+    //  本地原点 = anchor 指示的那个点
+    // ══════════════════════════════════════════════
     public Vector3 CellCenterLocal(Vector2Int c) => new Vector3(
-        originOffset.x + (c.x + 0.5f) * cellSize,
-        originOffset.y + (c.y + 0.5f) * cellSize,
+        originOffset.x + (c.x + 0.5f - width * (0.5f + anchor.x)) * cellSize,
+        originOffset.y + (c.y + 0.5f - height * (0.5f + anchor.y)) * cellSize,
         0f);
 
     public Vector3 CellCenterWorld(Vector2Int c) =>
         transform.TransformPoint(CellCenterLocal(c));
 
-    public Vector3 BoardCenterWorld => transform.TransformPoint(new Vector3(
-        originOffset.x + width * cellSize * 0.5f,
-        originOffset.y + height * cellSize * 0.5f,
-        0f));
+    // 棋盘几何中心在本地空间的位置
+    public Vector3 BoardCenterLocal => new Vector3(
+        originOffset.x - anchor.x * width * cellSize,
+        originOffset.y - anchor.y * height * cellSize,
+        0f);
+
+    public Vector3 BoardCenterWorld => transform.TransformPoint(BoardCenterLocal);
 
     public Vector2Int WorldToCell(Vector3 world)
     {
@@ -157,8 +163,8 @@ public class Gridmap : MonoBehaviour
                       - new Vector3(originOffset.x, originOffset.y, 0f);
 
         return new Vector2Int(
-            Mathf.FloorToInt(local.x / cellSize),
-            Mathf.FloorToInt(local.y / cellSize));
+            Mathf.FloorToInt(local.x / cellSize + width * (0.5f + anchor.x)),
+            Mathf.FloorToInt(local.y / cellSize + height * (0.5f + anchor.y)));
     }
 
     void OnDrawGizmos()

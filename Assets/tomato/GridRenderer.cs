@@ -106,12 +106,11 @@ public class GridRenderer : MonoBehaviour
         _plate.color = plateTint;
         _plate.sortingOrder = plateSortingOrder;
 
-        var b = _plate.sprite.bounds.size;
+        // 用 BoardCenterLocal，不是 originOffset ——
+        // 因为支点现在在正上方，而底图要盖住棋盘，得放在中心
+        go.transform.localPosition = map.BoardCenterLocal + new Vector3(0f, 0f, 0.01f);
 
-        go.transform.localPosition = new Vector3(
-            map.originOffset.x + map.width * map.cellSize * 0.5f,
-            map.originOffset.y + map.height * map.cellSize * 0.5f,
-            0.01f);     // 稍微靠后，避免和格子重合
+        var b = _plate.sprite.bounds.size;
 
         go.transform.localScale = new Vector3(
             map.width * map.cellSize / Mathf.Max(0.0001f, b.x),

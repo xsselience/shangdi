@@ -27,6 +27,9 @@ public class BattleFlow : MonoBehaviour
     [Tooltip("B 单位。先到终点 = 失败；撞到 A 造成伤害后消失")]
     public PathAgent enemyAgent;
 
+    [Header("元素反应")]
+    [SerializeField] ElementReaction elementReaction = new ElementReaction();
+
     [Header("交战")]
     [Tooltip("B 撞到 A 时造成的伤害")]
     public int enemyContactDamage = 30;
@@ -79,12 +82,19 @@ public class BattleFlow : MonoBehaviour
 
     IEnumerable<PathAgent> OrderedAgents => AllAgents.OrderBy(a => a.priority);
 
-    void OnEnable() { if (map != null) map.OnChanged += RecomputeAll; }
+    void OnEnable()
+    {
+        if (elementReaction == null) elementReaction = new ElementReaction();
+        foreach (PathAgent agent in AllAgents) agent.SetElementReaction(elementReaction);
+        if (map != null) map.OnChanged += RecomputeAll;
+    }
     void OnDisable() { if (map != null) map.OnChanged -= RecomputeAll; }
 
     void Start()
     {
         Validate();
+        if (elementReaction == null) elementReaction = new ElementReaction();
+        foreach (PathAgent agent in AllAgents) agent.SetElementReaction(elementReaction);
 
         var hp = PlayerHealth();
         if (hp != null) hp.OnDied += HandlePlayerDied;
@@ -132,11 +142,12 @@ public class BattleFlow : MonoBehaviour
         if (AtGoal(playerAgent)) { ResolveRound(RoundResult.Success); return; }
 
         // ── A 行动 ──
-        int aSteps = Mathf.Max(1, playerAgent.stepsPerTick);
+        int aSteps = playerAgent.GetStepsThisTick();
         for (int i = 0; i < aSteps; i++)
         {
             if (!playerAgent.TryStep()) break;
 
+            elementReaction.HandleUnitStep(playerAgent);
             PlayerHealth()?.ResolveGroundEffect();
             if (Current != Phase.Battle) return;
 
@@ -146,11 +157,12 @@ public class BattleFlow : MonoBehaviour
         }
 
         // ── B 行动 ──
-        int bSteps = Mathf.Max(1, enemyAgent.stepsPerTick);
+        int bSteps = enemyAgent.GetStepsThisTick();
         for (int i = 0; i < bSteps; i++)
         {
             if (!enemyAgent.TryStep()) break;
 
+            elementReaction.HandleUnitStep(enemyAgent);
             if (HandleContact()) return;
 
             if (AtGoal(enemyAgent)) { ResolveRound(RoundResult.Fail); return; }

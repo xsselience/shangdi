@@ -79,6 +79,19 @@ public class UnitHealth : MonoBehaviour
         }
     }
 
+    public void Heal(int amount)
+    {
+        if (_dead || amount <= 0) return;
+
+        int previousHp = currentHp;
+        currentHp = Mathf.Min(maxHp, currentHp + amount);
+        int healed = currentHp - previousHp;
+        if (healed <= 0) return;
+
+        OnHealthChanged?.Invoke(currentHp, maxHp);
+        Debug.Log($"{name}: +{healed} HP  当前 {currentHp}/{maxHp}", this);
+    }
+
     public void ResetToFull()
     {
         _dead = false;

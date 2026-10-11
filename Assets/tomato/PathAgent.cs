@@ -4,6 +4,33 @@ using UnityEngine;
 
 public class PathAgent : MonoBehaviour
 {
+    private struct SearchState : IEquatable<SearchState>
+    {
+        public readonly Vector2Int Position;
+        public readonly int Elevation;
+
+        public SearchState(Vector2Int position, int elevation)
+        {
+            Position = position;
+            Elevation = elevation;
+        }
+
+        public bool Equals(SearchState other)
+        {
+            return Position == other.Position && Elevation == other.Elevation;
+        }
+
+        public override bool Equals(object obj)
+        {
+            return obj is SearchState && Equals((SearchState)obj);
+        }
+
+        public override int GetHashCode()
+        {
+            unchecked { return (Position.GetHashCode() * 397) ^ Elevation; }
+        }
+    }
+
     [Header("引用")]
     public Gridmap map;
 
@@ -21,7 +48,7 @@ public class PathAgent : MonoBehaviour
 
     [Header("行动")]
     [Tooltip("每次轮到它行动时前进几格")]
-    public int stepsPerTick = 1;
+    public double stepsPerTick = 1;
 
     // 被 Despawn() 之后为 false。显示层靠它决定要不要藏起来
     public bool IsActive { get; private set; } = true;
@@ -31,15 +58,44 @@ public class PathAgent : MonoBehaviour
     public event Action OnReset;
 
     readonly List<Vector2Int> _path = new();
+    readonly List<int> _pathElevations = new();
+    ElementReaction _elementReaction = new ElementReaction();
     public IReadOnlyList<Vector2Int> Path => _path;
     public bool HasPath => _path.Count > 0;
+    public int Elevation { get; private set; }
 
     Vector2Int _current;
+    double _stepProgress;
+
+    public int GetStepsThisTick()
+    {
+        if (double.IsNaN(stepsPerTick) || double.IsInfinity(stepsPerTick) || stepsPerTick <= 0)
+            return 0;
+
+        _stepProgress += stepsPerTick;
+        double roundingTolerance = Math.Abs(_stepProgress) * 1e-12;
+        int steps = (int)Math.Min(Math.Floor(_stepProgress + roundingTolerance), int.MaxValue);
+        _stepProgress -= steps;
+        return steps;
+    }
+
+    public int GetPathElevation(int index)
+    {
+        return index >= 0 && index < _pathElevations.Count ? _pathElevations[index] : 0;
+    }
+
+    public void SetElementReaction(ElementReaction elementReaction)
+    {
+        _elementReaction = elementReaction ?? new ElementReaction();
+        if (map != null) Elevation = _elementReaction.GetStartingElevation(map, _current);
+        Recompute();
+    }
 
     void Awake()
     {
         _current = gridPos;
         IsActive = true;
+        Elevation = _elementReaction.GetStartingElevation(map, _current);
     }
 
     // ── 算路 ──
@@ -47,8 +103,14 @@ public class PathAgent : MonoBehaviour
     {
         if (intent.locked || map == null) return;
 
+        List<SearchState> states = AStar(new SearchState(_current, Elevation), intent.target, out bool reached);
         _path.Clear();
-        _path.AddRange(AStar(_current, intent.target, out bool reached));
+        _pathElevations.Clear();
+        foreach (SearchState state in states)
+        {
+            _path.Add(state.Position);
+            _pathElevations.Add(state.Elevation);
+        }
 
         OnPathChanged?.Invoke();
 
@@ -64,7 +126,9 @@ public class PathAgent : MonoBehaviour
         if (_path.Count == 0) return false;
 
         _current = _path[0];
+        Elevation = _pathElevations[0];
         _path.RemoveAt(0);
+        _pathElevations.RemoveAt(0);
 
         OnStep?.Invoke();
         OnPathChanged?.Invoke();
@@ -90,7 +154,10 @@ public class PathAgent : MonoBehaviour
     public void ResetToStart()
     {
         _path.Clear();
+        _pathElevations.Clear();
+        _stepProgress = 0;
         _current = gridPos;
+        Elevation = _elementReaction.GetStartingElevation(map, _current);
         intent.locked = false;
         IsActive = true;
 
@@ -106,17 +173,17 @@ public class PathAgent : MonoBehaviour
         new Vector2Int(-1, 0), new Vector2Int(0, -1)
     };
 
-    List<Vector2Int> AStar(Vector2Int start, Vector2Int goal, out bool reached)
+    List<SearchState> AStar(SearchState start, Vector2Int goal, out bool reached)
     {
         reached = false;
 
-        var open = new List<Vector2Int> { start };
-        var came = new Dictionary<Vector2Int, Vector2Int>();
-        var g = new Dictionary<Vector2Int, int> { [start] = 0 };
-        var f = new Dictionary<Vector2Int, int> { [start] = H(start, goal) };
+        var open = new List<SearchState> { start };
+        var came = new Dictionary<SearchState, SearchState>();
+        var g = new Dictionary<SearchState, int> { [start] = 0 };
+        var f = new Dictionary<SearchState, int> { [start] = H(start.Position, goal) };
 
-        Vector2Int best = start;
-        int bestH = H(start, goal);
+        SearchState best = start;
+        int bestH = H(start.Position, goal);
 
         while (open.Count > 0)
         {
@@ -124,48 +191,52 @@ public class PathAgent : MonoBehaviour
             for (int i = 1; i < open.Count; i++)
                 if (Better(open[i], open[bi], f)) bi = i;
 
-            var cur = open[bi];
+            SearchState cur = open[bi];
             open.RemoveAt(bi);
 
-            if (cur == goal) { reached = true; return Build(came, cur); }
+            if (cur.Position == goal) { reached = true; return Build(came, cur); }
 
-            int h = H(cur, goal);
+            int h = H(cur.Position, goal);
             if (h < bestH) { bestH = h; best = cur; }
 
             foreach (var d in Dirs)
             {
-                var n = cur + d;
+                Vector2Int position = cur.Position + d;
+                int nextElevation;
+                if (!_elementReaction.TryGetNextElevation(
+                    map, cur.Position, cur.Elevation, position, out nextElevation)) continue;
+                SearchState next = new SearchState(position, nextElevation);
 
-                // 只有墙和边界阻挡。单位、营地都不挡
-                if (!map.Walkable(n)) continue;
+                int ng = g[cur] + map.Cost(position);
+                if (g.TryGetValue(next, out var old) && ng >= old) continue;
 
-                int ng = g[cur] + map.Cost(n);
-                if (g.TryGetValue(n, out var old) && ng >= old) continue;
-
-                g[n] = ng;
-                f[n] = ng + H(n, goal);
-                came[n] = cur;
-                if (!open.Contains(n)) open.Add(n);
+                g[next] = ng;
+                f[next] = ng + H(position, goal);
+                came[next] = cur;
+                if (!open.Contains(next)) open.Add(next);
             }
         }
 
         return Build(came, best);
     }
 
-    bool Better(Vector2Int a, Vector2Int b, Dictionary<Vector2Int, int> f)
+    bool Better(SearchState a, SearchState b, Dictionary<SearchState, int> f)
     {
         int fa = f[a], fb = f[b];
         if (fa != fb) return fa < fb;
-        return a.y * map.width + a.x < b.y * map.width + b.x;
+        int aIndex = a.Position.y * map.width + a.Position.x;
+        int bIndex = b.Position.y * map.width + b.Position.x;
+        if (aIndex != bIndex) return aIndex < bIndex;
+        return a.Elevation < b.Elevation;
     }
 
     static int H(Vector2Int a, Vector2Int b) =>
         Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y);
 
-    static List<Vector2Int> Build(Dictionary<Vector2Int, Vector2Int> came, Vector2Int end)
+    static List<SearchState> Build(Dictionary<SearchState, SearchState> came, SearchState end)
     {
-        var path = new List<Vector2Int>();
-        var cur = end;
+        var path = new List<SearchState>();
+        SearchState cur = end;
 
         while (came.TryGetValue(cur, out var prev))
         {

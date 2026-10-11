@@ -108,7 +108,7 @@ public class UnitView : MonoBehaviour
     void Follow()
     {
         Vector3 target = agent.map.CellCenterWorld(agent.GridPos)
-                       + new Vector3(0f, 0f, zOffset);
+                       + new Vector3(0f, 0f, agent.Elevation + zOffset);
         float k = 1f - Mathf.Exp(-followSharpness * Time.deltaTime);
         spriteRenderer.transform.position =
             Vector3.Lerp(spriteRenderer.transform.position, target, k);
@@ -118,6 +118,6 @@ public class UnitView : MonoBehaviour
     {
         if (agent == null || agent.map == null || spriteRenderer == null) return;
         spriteRenderer.transform.position =
-            agent.map.CellCenterWorld(agent.GridPos) + new Vector3(0f, 0f, zOffset);
+            agent.map.CellCenterWorld(agent.GridPos) + new Vector3(0f, 0f, agent.Elevation + zOffset);
     }
 }

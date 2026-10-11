@@ -28,9 +28,14 @@ public class Gridmap : MonoBehaviour
     [Tooltip("营地对寻路的额外代价。0 = A* 忽略营地")]
     public int campCostPenalty = 0;
 
+    // ══ 地形：序列化，随场景保存，在自定义 Inspector 里点画 ══
+    [SerializeField, HideInInspector] private TileType[] _tiles;
+    [SerializeField, HideInInspector] private int _tilesW = -1;
+    [SerializeField, HideInInspector] private int _tilesH = -1;
+
     public event Action OnChanged;
 
-    TileType[] _tiles;
+    // 营地与特殊棋子都是运行时数据，不进场景
     bool[] _camps;
     SpecialElement[] _specials;
 
@@ -39,7 +44,11 @@ public class Gridmap : MonoBehaviour
         get
         {
             if (_tiles == null || _tiles.Length != width * height)
+            {
                 _tiles = new TileType[width * height];
+                _tilesW = width;
+                _tilesH = height;
+            }
             return _tiles;
         }
     }
@@ -62,6 +71,30 @@ public class Gridmap : MonoBehaviour
                 _specials = new SpecialElement[width * height];
             return _specials;
         }
+    }
+
+    // 改了宽高之后把旧数据搬过来，重叠的部分不丢
+    void OnValidate()
+    {
+        width = Mathf.Max(1, width);
+        height = Mathf.Max(1, height);
+
+        if (_tiles != null && _tilesW == width && _tilesH == height) return;
+
+        var next = new TileType[width * height];
+
+        if (_tiles != null && _tilesW > 0 && _tilesH > 0)
+        {
+            int cw = Mathf.Min(_tilesW, width);
+            int ch = Mathf.Min(_tilesH, height);
+            for (int y = 0; y < ch; y++)
+                for (int x = 0; x < cw; x++)
+                    next[y * width + x] = _tiles[y * _tilesW + x];
+        }
+
+        _tiles = next;
+        _tilesW = width;
+        _tilesH = height;
     }
 
     public bool InBounds(Vector2Int c) =>
@@ -91,6 +124,13 @@ public class Gridmap : MonoBehaviour
         Tiles[i] = t;
         OnChanged?.Invoke();
         return true;
+    }
+
+    /// <summary>编辑器绘制专用：绕过 editable。运行时请用 Set()。</summary>
+    public void EditorSetTile(Vector2Int c, TileType t)
+    {
+        if (!InBounds(c)) return;
+        Tiles[c.y * width + c.x] = t;
     }
 
     // ── 营地 ──
@@ -135,11 +175,10 @@ public class Gridmap : MonoBehaviour
         return n;
     }
 
-    // ── 特殊棋子（第三层，跨章保留）──
+    // ── 特殊棋子 ──
     public SpecialElement GetSpecial(Vector2Int c) =>
         InBounds(c) ? Specials[c.y * width + c.x] : SpecialElement.None;
 
-    /// <summary>写入一格。传 None 等同于移除。</summary>
     public bool SetSpecial(Vector2Int c, SpecialElement element)
     {
         if (!InBounds(c)) return false;

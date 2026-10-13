@@ -83,13 +83,12 @@ public class UnitHealth : MonoBehaviour
     {
         if (_dead || amount <= 0) return;
 
-        int previousHp = currentHp;
+        int before = currentHp;
         currentHp = Mathf.Min(maxHp, currentHp + amount);
-        int healed = currentHp - previousHp;
-        if (healed <= 0) return;
+        if (currentHp == before) return;        // 已经满血，不刷屏
 
         OnHealthChanged?.Invoke(currentHp, maxHp);
-        Debug.Log($"{name}: +{healed} HP  当前 {currentHp}/{maxHp}", this);
+        Debug.Log($"{name}: +{currentHp - before} HP（治疗）  剩余 {currentHp}/{maxHp}", this);
     }
 
     public void ResetToFull()
@@ -99,4 +98,6 @@ public class UnitHealth : MonoBehaviour
         OnHealthChanged?.Invoke(currentHp, maxHp);
         Debug.Log($"{name}: 血量回满 {currentHp}/{maxHp}", this);
     }
+
+
 }

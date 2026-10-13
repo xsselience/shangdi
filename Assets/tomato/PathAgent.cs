@@ -59,7 +59,7 @@ public class PathAgent : MonoBehaviour
 
     readonly List<Vector2Int> _path = new();
     readonly List<int> _pathElevations = new();
-    ElementReaction _elementReaction = new ElementReaction();
+    [SerializeField] private ElementReaction _elementReaction = new ElementReaction();
     public IReadOnlyList<Vector2Int> Path => _path;
     public bool HasPath => _path.Count > 0;
     public int Elevation { get; private set; }
@@ -72,7 +72,10 @@ public class PathAgent : MonoBehaviour
         if (double.IsNaN(stepsPerTick) || double.IsInfinity(stepsPerTick) || stepsPerTick <= 0)
             return 0;
 
-        _stepProgress += stepsPerTick;
+        // 脚下地形的行动力倍率：森林 0.5，草原 / 沙漠 1
+        double speed = map != null ? map.MoveSpeedMultiplier(_current) : 1.0;
+
+        _stepProgress += stepsPerTick * speed;
         double roundingTolerance = Math.Abs(_stepProgress) * 1e-12;
         int steps = (int)Math.Min(Math.Floor(_stepProgress + roundingTolerance), int.MaxValue);
         _stepProgress -= steps;
@@ -246,5 +249,10 @@ public class PathAgent : MonoBehaviour
 
         path.Reverse();
         return path;
+    }
+
+    public void ResolveElementEffect()
+    {
+        if (_elementReaction != null) _elementReaction.HandleUnitStep(this);
     }
 }

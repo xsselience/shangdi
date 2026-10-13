@@ -28,6 +28,6 @@ MonoBehaviour:
   - elemId: 2
     weight: 3
   - elemId: 3
-    weight: 1
+    weight: 2
   - elemId: 4
     weight: 1

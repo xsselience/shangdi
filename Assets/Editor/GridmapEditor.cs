@@ -48,9 +48,14 @@ public sealed class GridmapEditor : UnityEditor.Editor
                 Rect r = GUILayoutUtility.GetRect(cell, cell);
 
                 TileType t = map.Get(c);
-                Color fill = t == TileType.Wall
-                    ? new Color(0.40f, 0.43f, 0.50f)
-                    : new Color(0.80f, 0.84f, 0.90f);
+                Color fill;
+                switch (t)
+                {
+                    case TileType.Wall: fill = new Color(0.40f, 0.43f, 0.50f); break;
+                    case TileType.Forest: fill = new Color(0.35f, 0.62f, 0.38f); break;
+                    case TileType.Desert: fill = new Color(0.88f, 0.78f, 0.50f); break;
+                    default: fill = new Color(0.82f, 0.86f, 0.92f); break;
+                }
 
                 EditorGUI.DrawRect(r, fill);
                 EditorGUI.DrawRect(new Rect(r.x, r.y, r.width, 1f), new Color(0.25f, 0.27f, 0.32f));

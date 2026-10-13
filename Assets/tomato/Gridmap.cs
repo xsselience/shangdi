@@ -2,8 +2,15 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum TileType { Ground, Wall }
+public enum TileType
+{
+    Ground = 0,   // 草原：正常通行，无效果
+    Wall = 1,   // 山：阻挡前进（有高度可以越）
+    Forest = 2,   // 森林：减速
+    Desert = 3,   // 沙漠：暂无效果
+}
 
+/// 第二棋盘上的特殊棋子类型。和第一棋盘的 ElementType 一一对应
 public enum SpecialElement { None = 0, Fire = 1, Water = 2, Wind = 3, Ground = 4 }
 
 public class Gridmap : MonoBehaviour
@@ -27,6 +34,19 @@ public class Gridmap : MonoBehaviour
     [Header("营地")]
     [Tooltip("营地对寻路的额外代价。0 = A* 忽略营地")]
     public int campCostPenalty = 0;
+
+    [Header("地形行动力倍率")]
+    [Tooltip("草原：1 = 正常速度")]
+    [Range(0f, 2f)] public float groundSpeed = 1f;
+
+    [Tooltip("森林：0.5 = 走一格要两回合")]
+    [Range(0f, 2f)] public float forestSpeed = 0.5f;
+
+    [Tooltip("沙漠：暂无效果")]
+    [Range(0f, 2f)] public float desertSpeed = 1f;
+
+    [Tooltip("山：本来就走不上去，这里只是兜底")]
+    [Range(0f, 2f)] public float wallSpeed = 1f;
 
     // ══ 地形：序列化，随场景保存，在自定义 Inspector 里点画 ══
     [SerializeField, HideInInspector] private TileType[] _tiles;
@@ -73,7 +93,6 @@ public class Gridmap : MonoBehaviour
         }
     }
 
-    // 改了宽高之后把旧数据搬过来，重叠的部分不丢
     void OnValidate()
     {
         width = Mathf.Max(1, width);
@@ -111,6 +130,33 @@ public class Gridmap : MonoBehaviour
         int cost = 1;
         if (HasCamp(c)) cost += Mathf.Max(0, campCostPenalty);
         return cost;
+    }
+
+    /// <summary>
+    /// 站在这个格子上时，行动力要乘多少。
+    /// 1 = 正常，0.5 = 走一格要两回合，0 = 完全动不了。
+    /// </summary>
+    public float MoveSpeedMultiplier(Vector2Int c)
+    {
+        switch (Get(c))
+        {
+            case TileType.Forest: return Mathf.Max(0f, forestSpeed);
+            case TileType.Desert: return Mathf.Max(0f, desertSpeed);
+            case TileType.Wall: return Mathf.Max(0f, wallSpeed);
+            default: return Mathf.Max(0f, groundSpeed);
+        }
+    }
+
+    /// <summary>地形名字，给日志和 UI 用</summary>
+    public static string TerrainName(TileType t)
+    {
+        switch (t)
+        {
+            case TileType.Wall: return "山";
+            case TileType.Forest: return "森林";
+            case TileType.Desert: return "沙漠";
+            default: return "草原";
+        }
     }
 
     public bool Set(Vector2Int c, TileType t)
@@ -258,8 +304,16 @@ public class Gridmap : MonoBehaviour
 
                 if (GetSpecial(c) != SpecialElement.None) Gizmos.color = new Color(0.6f, 0.9f, 1f, 0.6f);
                 else if (HasCamp(c)) Gizmos.color = new Color(1f, 0.4f, 0.4f, 0.45f);
-                else if (Get(c) == TileType.Wall) Gizmos.color = new Color(1f, 1f, 1f, 0.30f);
-                else Gizmos.color = new Color(1f, 1f, 1f, 0.06f);
+                else
+                {
+                    switch (Get(c))
+                    {
+                        case TileType.Wall: Gizmos.color = new Color(1f, 1f, 1f, 0.30f); break;
+                        case TileType.Forest: Gizmos.color = new Color(0.35f, 0.9f, 0.45f, 0.35f); break;
+                        case TileType.Desert: Gizmos.color = new Color(0.95f, 0.85f, 0.45f, 0.30f); break;
+                        default: Gizmos.color = new Color(1f, 1f, 1f, 0.06f); break;
+                    }
+                }
 
                 Gizmos.DrawCube(CellCenterWorld(c), Vector3.one * cellSize * 0.9f);
             }

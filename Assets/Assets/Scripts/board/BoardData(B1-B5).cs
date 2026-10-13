@@ -6,7 +6,7 @@ using System.Collections.Generic;
 
 
 // ===== 原文件：Boardtype.cs =====
-using System;
+
 namespace Game.Board
 { //棋子元素属性
   public enum ElementType

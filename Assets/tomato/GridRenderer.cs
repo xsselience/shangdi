@@ -19,11 +19,15 @@ public class GridRenderer : MonoBehaviour
     [Header("格子贴图（留空用占位方块）")]
     public Sprite groundSprite;
     public Sprite wallSprite;
+    public Sprite forestSprite;      // ← 新增
+    public Sprite desertSprite;      // ← 新增
     public Sprite campSprite;
 
     [Header("格子染色")]
     public Color groundTint = new Color(1f, 1f, 1f, 0.06f);
     public Color wallTint = new Color(1f, 1f, 1f, 0.45f);
+    public Color forestTint = new Color(0.30f, 0.62f, 0.36f, 0.45f);   // ← 新增
+    public Color desertTint = new Color(0.88f, 0.78f, 0.46f, 0.45f);   // ← 新增
     public Color campTint = new Color(1f, 0.35f, 0.35f, 0.40f);
 
     [Header("格子")]
@@ -132,9 +136,22 @@ public class GridRenderer : MonoBehaviour
                 Sprite s;
                 Color col;
 
+                if (map.HasCamp(c))
+                {
+                    s = campSprite; col = campTint;
+                }
+                else
+                {
+                    switch (map.Get(c))
+                    {
+                        case TileType.Wall: s = wallSprite; col = wallTint; break;
+                        case TileType.Forest: s = forestSprite; col = forestTint; break;
+                        case TileType.Desert: s = desertSprite; col = desertTint; break;
+                        default: s = groundSprite; col = groundTint; break;
+                    }
+                }
                 if (map.HasCamp(c)) { s = campSprite; col = campTint; }
                 else if (map.Get(c) == TileType.Wall) { s = wallSprite; col = wallTint; }
-                else { s = groundSprite; col = groundTint; }
 
                 if (s == null) s = SpriteFactory.WhiteSquare;
 

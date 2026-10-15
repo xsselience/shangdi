@@ -90,12 +90,16 @@ public class StartButtonUI : MonoBehaviour
 
         ApplyBoardScales(false);
 
+        // ★ 先让第二棋盘载入这一章的关卡（这一步同时会把它自己隐藏/显示好）
+        if (battleFlow != null) battleFlow.ApplyLevel(currentChapter - 1);
+        else Debug.LogWarning("StartButtonUI: battleFlow 未指定", this);
+
         RunChapterBegin(currentChapter);
 
         if (boardBridge != null) boardBridge.RunStage(currentChapter - 1);
         else Debug.LogWarning("StartButtonUI: boardBridge 未指定，第一棋盘不会启动", this);
 
-        Debug.Log("StartButtonUI: 第 " + currentChapter + " 章开始（第一棋盘阶段 " + currentChapter + "）", this);
+        Debug.Log($"StartButtonUI: 第 {currentChapter} 章开始", this);
     }
 
     // 第一棋盘当前阶段跑完
@@ -136,15 +140,15 @@ public class StartButtonUI : MonoBehaviour
             return;
         }
 
-        Debug.Log("StartButtonUI: 第 " + currentChapter + " 章失败，重来本阶段", this);
+        Debug.Log($"StartButtonUI: 第 {currentChapter} 章失败，重来本关", this);
 
         if (battleFlow != null)
         {
             if (fullResetOnFailure) battleFlow.ResetEverything();
-            else battleFlow.ResetToPreBattle();   // 地图和营地保留，A / B 归位
+            else battleFlow.ResetThisLevel();   // ← 改这一行
         }
 
-        BeginChapter(currentChapter);       // 重来同一章
+        BeginChapter(currentChapter);
     }
 
     /// <summary>成功面板的按钮接这个。</summary>

@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System;
 using TMPro;
+using System.Text;
 using UnityEngine;
 
 public class ScoreBoard : MonoBehaviour
@@ -61,10 +62,35 @@ public class ScoreBoard : MonoBehaviour
     // 结算那一刻触发，早于任何血量重置
     void OnRoundResolved(BattleFlow.RoundResult result)
     {
-        if (result != BattleFlow.RoundResult.Success) return;   // 失败 / 阵亡不计分
+        if (result != BattleFlow.RoundResult.Success) return;
 
-        int gained = playerHealth != null ? Mathf.Max(0, playerHealth.Hp) : 0;
-        AddScore(gained, "到达终点");
+        int gained = 0;
+        int alive = 0;
+        var detail = new StringBuilder();
+
+        if (battleFlow != null)
+        {
+            foreach (PathAgent a in battleFlow.GetPlayerUnits())
+            {
+                if (a == null) continue;
+
+                UnitHealth hp = a.GetComponent<UnitHealth>();
+                int value = hp != null ? Mathf.Max(0, hp.Hp) : 0;
+
+                gained += value;
+                if (value > 0) alive++;
+
+                if (detail.Length > 0) detail.Append(" + ");
+                detail.Append(a.name).Append(" ").Append(value);
+            }
+        }
+
+        if (detail.Length == 0) detail.Append("（没找到任何 A）");
+
+        if (logChanges)
+            Debug.Log($"ScoreBoard: 计分明细 = {detail} = {gained}（有效 {alive} 个）", this);
+
+        AddScore(gained, $"{alive} 个 A 的剩余血量");
     }
 
     void OnGameStateChanged(GameState state)

@@ -50,6 +50,7 @@ public class PathAgent : MonoBehaviour
     [Tooltip("每次轮到它行动时前进几格")]
     public double stepsPerTick = 1;
 
+
     // 被 Despawn() 之后为 false。显示层靠它决定要不要藏起来
     public bool IsActive { get; private set; } = true;
 
@@ -106,9 +107,31 @@ public class PathAgent : MonoBehaviour
     {
         if (intent.locked || map == null) return;
 
-        List<SearchState> states = AStar(new SearchState(_current, Elevation), intent.target, out bool reached);
+        if (!ComputePath())
+            Debug.Log($"{name}: 目标不可达，退回到最接近目标格子", this);
+    }
+
+    /// <summary>
+    /// 无视 intent.locked，把目标改成 goal 并立刻重算。
+    /// 追击单位用——它需要在战斗中反复改目标。
+    /// </summary>
+    public bool RetargetTo(Vector2Int goal)
+    {
+        if (map == null) return false;
+
+        intent.target = goal;
+        return ComputePath();
+    }
+
+    /// <summary>真正的算路。返回是否真的到达了目标格。</summary>
+    bool ComputePath()
+    {
+        List<SearchState> states =
+            AStar(new SearchState(_current, Elevation), intent.target, out bool reached);
+
         _path.Clear();
         _pathElevations.Clear();
+
         foreach (SearchState state in states)
         {
             _path.Add(state.Position);
@@ -116,9 +139,7 @@ public class PathAgent : MonoBehaviour
         }
 
         OnPathChanged?.Invoke();
-
-        if (!reached)
-            Debug.Log($"{name}: 目标不可达，退回到最接近目标格子", this);
+        return reached;
     }
 
     // ── 前进一格 ──
@@ -166,6 +187,22 @@ public class PathAgent : MonoBehaviour
 
         gameObject.SetActive(true);     // 先激活，让显示层重新订阅
         OnReset?.Invoke();              // 再通知，UnitView 会直接归位
+        OnPathChanged?.Invoke();
+    }
+
+    public void SetStartPos(Vector2Int c)
+    {
+        gridPos = c;
+        _current = c;
+        _path.Clear();
+        _pathElevations.Clear();
+        _stepProgress = 0;
+        Elevation = _elementReaction.GetStartingElevation(map, _current);
+        intent.locked = false;
+        IsActive = true;
+        gameObject.SetActive(true);
+
+        OnReset?.Invoke();
         OnPathChanged?.Invoke();
     }
 

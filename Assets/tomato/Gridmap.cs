@@ -35,17 +35,13 @@ public class Gridmap : MonoBehaviour
     [Tooltip("营地对寻路的额外代价。0 = A* 忽略营地")]
     public int campCostPenalty = 0;
 
+    [Tooltip("AddCamp 不传伤害时用的默认值")]
+    public int defaultCampDamage = 20;
+
     [Header("地形行动力倍率")]
-    [Tooltip("草原：1 = 正常速度")]
     [Range(0f, 2f)] public float groundSpeed = 1f;
-
-    [Tooltip("森林：0.5 = 走一格要两回合")]
     [Range(0f, 2f)] public float forestSpeed = 0.5f;
-
-    [Tooltip("沙漠：暂无效果")]
     [Range(0f, 2f)] public float desertSpeed = 1f;
-
-    [Tooltip("山：本来就走不上去，这里只是兜底")]
     [Range(0f, 2f)] public float wallSpeed = 1f;
 
     // ══ 地形：序列化，随场景保存，在自定义 Inspector 里点画 ══
@@ -56,7 +52,7 @@ public class Gridmap : MonoBehaviour
     public event Action OnChanged;
 
     // 营地与特殊棋子都是运行时数据，不进场景
-    bool[] _camps;
+    int[] _camps;                    // 0 = 无营地，>0 = 伤害值
     SpecialElement[] _specials;
 
     TileType[] Tiles
@@ -73,12 +69,12 @@ public class Gridmap : MonoBehaviour
         }
     }
 
-    bool[] Camps
+    int[] Camps
     {
         get
         {
             if (_camps == null || _camps.Length != width * height)
-                _camps = new bool[width * height];
+                _camps = new int[width * height];
             return _camps;
         }
     }
@@ -132,10 +128,6 @@ public class Gridmap : MonoBehaviour
         return cost;
     }
 
-    /// <summary>
-    /// 站在这个格子上时，行动力要乘多少。
-    /// 1 = 正常，0.5 = 走一格要两回合，0 = 完全动不了。
-    /// </summary>
     public float MoveSpeedMultiplier(Vector2Int c)
     {
         switch (Get(c))
@@ -147,7 +139,6 @@ public class Gridmap : MonoBehaviour
         }
     }
 
-    /// <summary>地形名字，给日志和 UI 用</summary>
     public static string TerrainName(TileType t)
     {
         switch (t)
@@ -179,29 +170,39 @@ public class Gridmap : MonoBehaviour
         Tiles[c.y * width + c.x] = t;
     }
 
-    // ── 营地 ──
-    public bool HasCamp(Vector2Int c) => InBounds(c) && Camps[c.y * width + c.x];
+    // ══════════════ 营地（带伤害值）══════════════
+    public bool HasCamp(Vector2Int c) => InBounds(c) && Camps[c.y * width + c.x] > 0;
 
-    public bool AddCamp(Vector2Int c)
+    /// <summary>这个格子上的营地伤害。0 表示没有营地。</summary>
+    public int GetCampDamage(Vector2Int c) =>
+        InBounds(c) ? Camps[c.y * width + c.x] : 0;
+
+    /// <summary>放一个营地。已经有营地时会覆盖成新的伤害值。</summary>
+    public bool AddCamp(Vector2Int c, int damage)
     {
         if (!InBounds(c)) return false;
 
-        int i = c.y * width + c.x;
-        if (Camps[i]) return false;
+        damage = Mathf.Max(1, damage);
 
-        Camps[i] = true;
+        int i = c.y * width + c.x;
+        if (Camps[i] == damage) return false;
+
+        Camps[i] = damage;
         OnChanged?.Invoke();
         return true;
     }
+
+    /// <summary>不指定伤害时用 defaultCampDamage</summary>
+    public bool AddCamp(Vector2Int c) => AddCamp(c, defaultCampDamage);
 
     public bool RemoveCamp(Vector2Int c)
     {
         if (!InBounds(c)) return false;
 
         int i = c.y * width + c.x;
-        if (!Camps[i]) return false;
+        if (Camps[i] == 0) return false;
 
-        Camps[i] = false;
+        Camps[i] = 0;
         OnChanged?.Invoke();
         return true;
     }
@@ -209,7 +210,8 @@ public class Gridmap : MonoBehaviour
     [ContextMenu("清空营地")]
     public void ClearCamps()
     {
-        for (int i = 0; i < Camps.Length; i++) Camps[i] = false;
+        var a = Camps;
+        for (int i = 0; i < a.Length; i++) a[i] = 0;
         OnChanged?.Invoke();
     }
 
@@ -217,7 +219,7 @@ public class Gridmap : MonoBehaviour
     {
         int n = 0;
         var a = Camps;
-        for (int i = 0; i < a.Length; i++) if (a[i]) n++;
+        for (int i = 0; i < a.Length; i++) if (a[i] > 0) n++;
         return n;
     }
 

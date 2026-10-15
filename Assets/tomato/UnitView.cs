@@ -10,7 +10,7 @@ public class UnitView : MonoBehaviour
     [Tooltip("留空会自动创建子物体来显示")]
     public SpriteRenderer spriteRenderer;
 
-    [Tooltip("留空则用自动生成的占位圆点，方便美术资源到位前先调逻辑")]
+    [Tooltip("留空则用自动生成的占位圆点")]
     public Sprite sprite;
 
     [Header("外观")]
@@ -27,6 +27,7 @@ public class UnitView : MonoBehaviour
 
     Sprite _applied;
     bool _warned;
+    bool _needsSnap = true;
 
     void Awake()
     {
@@ -34,9 +35,20 @@ public class UnitView : MonoBehaviour
         if (agent == null) Warn("agent 未指定");
     }
 
-    void Start() => Snap();
+    void OnEnable()
+    {
+        _needsSnap = true;                              // 每次被激活，第一帧直接归位
+        if (agent != null) agent.OnReset += SnapToCell;
+    }
 
-    void Update()
+    void OnDisable()
+    {
+        if (agent != null) agent.OnReset -= SnapToCell;
+    }
+
+    // 用 LateUpdate：跑在所有人的 Start / Update 之后，
+    // 这时棋盘缩放的改动已经生效，归位才是准的
+    void LateUpdate()
     {
         if (agent == null || agent.map == null)
         {
@@ -46,7 +58,24 @@ public class UnitView : MonoBehaviour
 
         EnsureVisual();
         ApplySprite();
+
+        if (_needsSnap)
+        {
+            _needsSnap = false;
+            SnapToCell();                               // 直接到位，不插值
+            return;
+        }
+
         Follow();
+    }
+
+    /// <summary>立刻把贴图挪到当前格子中心，不做插值。外部也可以调。</summary>
+    public void SnapToCell()
+    {
+        if (agent == null || agent.map == null || spriteRenderer == null) return;
+
+        spriteRenderer.transform.position =
+            agent.map.CellCenterWorld(agent.GridPos) + new Vector3(0f, 0f, zOffset);
     }
 
     void Warn(string msg)
@@ -108,16 +137,10 @@ public class UnitView : MonoBehaviour
     void Follow()
     {
         Vector3 target = agent.map.CellCenterWorld(agent.GridPos)
-                       + new Vector3(0f, 0f, agent.Elevation + zOffset);
+                       + new Vector3(0f, 0f, zOffset);
+
         float k = 1f - Mathf.Exp(-followSharpness * Time.deltaTime);
         spriteRenderer.transform.position =
             Vector3.Lerp(spriteRenderer.transform.position, target, k);
-    }
-
-    void Snap()
-    {
-        if (agent == null || agent.map == null || spriteRenderer == null) return;
-        spriteRenderer.transform.position =
-            agent.map.CellCenterWorld(agent.GridPos) + new Vector3(0f, 0f, agent.Elevation + zOffset);
     }
 }

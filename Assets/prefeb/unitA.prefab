@@ -1,0 +1,123 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1 &4617781785574089815
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 7106020388907316656}
+  - component: {fileID: 1925463051903818349}
+  - component: {fileID: 4319208872216475182}
+  - component: {fileID: 1529238347764751444}
+  - component: {fileID: 8317225393716653288}
+  m_Layer: 0
+  m_Name: unitA
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &7106020388907316656
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4617781785574089815}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1925463051903818349
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4617781785574089815}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 87636b27dc516c0428807bed3a40bd9b, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  map: {fileID: 0}
+  intent:
+    target: {x: 9, y: 0}
+    mode: 0
+    locked: 0
+  priority: 1
+  gridPos: {x: 0, y: 9}
+  stepsPerTick: 1
+  _elementReaction:
+    waterHealAmount: 20
+    earthBlocksPath: 1
+    windLiftHeight: 1
+    forestBurnRange: 1
+    fireSpreadLimit: 5
+--- !u!114 &4319208872216475182
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4617781785574089815}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: fd5132a4d13b9ae4f81737e175a01dd0, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  agent: {fileID: 1925463051903818349}
+  spriteRenderer: {fileID: 0}
+  sprite: {fileID: 21300000, guid: 3d9fb250bb3b6c2408d5ae1dfe460a9c, type: 3}
+  placeholderColor: {r: 0.4, g: 0.78, b: 1, a: 1}
+  tint: {r: 1, g: 1, b: 1, a: 1}
+  fitRatio: 0.8
+  autoFitToCell: 1
+  sortingOrder: 10
+  zOffset: -0.1
+  followSharpness: 14
+--- !u!114 &1529238347764751444
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4617781785574089815}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 00cdf112d933c984bbf1744ee9bf4bae, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  agent: {fileID: 1925463051903818349}
+  showPath: 1
+  pathColor: {r: 1, g: 0.85, b: 0.3, a: 0.85}
+  dotSizeRatio: 0.32
+  showTarget: 1
+  targetColor: {r: 1, g: 0.35, b: 0.35, a: 0.45}
+  targetSizeRatio: 0.95
+  targetSortingOrder: 4
+  pathSortingOrder: 5
+  zOffset: -0.05
+--- !u!114 &8317225393716653288
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4617781785574089815}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0846c6a26949b624aa42f8b43e28324e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  agent: {fileID: 1925463051903818349}
+  maxHp: 100
+  attackPower: 0
+  currentHp: 100

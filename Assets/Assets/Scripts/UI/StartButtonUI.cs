@@ -1,5 +1,6 @@
 using UnityEngine;
 using Game.Board;
+using UnityEngine.SceneManagement;
 
 public class StartButtonUI : MonoBehaviour
 {
@@ -35,6 +36,13 @@ public class StartButtonUI : MonoBehaviour
 
     [Tooltip("1 起。0 表示还没开始")]
     [SerializeField] private int currentChapter;
+
+    [Header("全部通关后")]
+    [Tooltip("五章全部通关后显示的按钮。平时在场景里保持未勾选")]
+    [SerializeField] private GameObject endingButton;
+
+    [Tooltip("点击结束后要去的场景索引。0 = 开始场景")]
+    [SerializeField] private int endingSceneIndex = 0;
 
     public Stage CurrentStage { get { return stage; } }
     public int CurrentChapter { get { return currentChapter; } }
@@ -242,8 +250,26 @@ public class StartButtonUI : MonoBehaviour
     // ═══════════════════════════════════════════════════════
     private void RunAllChaptersCleared()
     {
+        Debug.Log("StartButtonUI: 全部章节通关", this);
+
+        if (endingButton == null)
+        {
+            Debug.LogWarning("StartButtonUI: endingButton 未指定，通关后没有按钮出现", this);
+            return;
+        }
+
+        endingButton.SetActive(true);
     }
-    // ═══════════════════════════════════════════════════════
-    //  ▲▲▲  留空结束  ▲▲▲
-    // ═══════════════════════════════════════════════════════
+
+    /// <summary>结束按钮接这个：回到开始场景</summary>
+    public void OnClickEndingButton()
+    {
+        Debug.Log($"StartButtonUI: 返回场景 {endingSceneIndex}", this);
+
+        // 保险：万一暂停那套改过 timeScale，回场景前先还原，
+        // 否则新场景一进去就是静止的
+        Time.timeScale = 1f;
+
+        SceneManager.LoadScene(endingSceneIndex);
+    }
 }

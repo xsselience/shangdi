@@ -2,8 +2,15 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-public enum TileType { Ground, Wall }
+public enum TileType
+{
+    Ground = 0,   // 草原：正常通行，无效果
+    Wall = 1,   // 山：阻挡前进（有高度可以越）
+    Forest = 2,   // 森林：减速
+    Desert = 3,   // 沙漠：暂无效果
+}
 
+/// 第二棋盘上的特殊棋子类型。和第一棋盘的 ElementType 一一对应
 public enum SpecialElement { None = 0, Fire = 1, Water = 2, Wind = 3, Ground = 4 }
 
 public class Gridmap : MonoBehaviour
@@ -28,6 +35,15 @@ public class Gridmap : MonoBehaviour
     [Tooltip("营地对寻路的额外代价。0 = A* 忽略营地")]
     public int campCostPenalty = 0;
 
+    [Tooltip("AddCamp 不传伤害时用的默认值")]
+    public int defaultCampDamage = 20;
+
+    [Header("地形行动力倍率")]
+    [Range(0f, 2f)] public float groundSpeed = 1f;
+    [Range(0f, 2f)] public float forestSpeed = 0.5f;
+    [Range(0f, 2f)] public float desertSpeed = 1f;
+    [Range(0f, 2f)] public float wallSpeed = 1f;
+
     // ══ 地形：序列化，随场景保存，在自定义 Inspector 里点画 ══
     [SerializeField, HideInInspector] private TileType[] _tiles;
     [SerializeField, HideInInspector] private int _tilesW = -1;
@@ -36,7 +52,7 @@ public class Gridmap : MonoBehaviour
     public event Action OnChanged;
 
     // 营地与特殊棋子都是运行时数据，不进场景
-    bool[] _camps;
+    int[] _camps;                    // 0 = 无营地，>0 = 伤害值
     SpecialElement[] _specials;
 
     TileType[] Tiles
@@ -53,12 +69,12 @@ public class Gridmap : MonoBehaviour
         }
     }
 
-    bool[] Camps
+    int[] Camps
     {
         get
         {
             if (_camps == null || _camps.Length != width * height)
-                _camps = new bool[width * height];
+                _camps = new int[width * height];
             return _camps;
         }
     }
@@ -73,7 +89,6 @@ public class Gridmap : MonoBehaviour
         }
     }
 
-    // 改了宽高之后把旧数据搬过来，重叠的部分不丢
     void OnValidate()
     {
         width = Mathf.Max(1, width);
@@ -113,6 +128,28 @@ public class Gridmap : MonoBehaviour
         return cost;
     }
 
+    public float MoveSpeedMultiplier(Vector2Int c)
+    {
+        switch (Get(c))
+        {
+            case TileType.Forest: return Mathf.Max(0f, forestSpeed);
+            case TileType.Desert: return Mathf.Max(0f, desertSpeed);
+            case TileType.Wall: return Mathf.Max(0f, wallSpeed);
+            default: return Mathf.Max(0f, groundSpeed);
+        }
+    }
+
+    public static string TerrainName(TileType t)
+    {
+        switch (t)
+        {
+            case TileType.Wall: return "山";
+            case TileType.Forest: return "森林";
+            case TileType.Desert: return "沙漠";
+            default: return "草原";
+        }
+    }
+
     public bool Set(Vector2Int c, TileType t)
     {
         if (!editable) return false;
@@ -133,29 +170,39 @@ public class Gridmap : MonoBehaviour
         Tiles[c.y * width + c.x] = t;
     }
 
-    // ── 营地 ──
-    public bool HasCamp(Vector2Int c) => InBounds(c) && Camps[c.y * width + c.x];
+    // ══════════════ 营地（带伤害值）══════════════
+    public bool HasCamp(Vector2Int c) => InBounds(c) && Camps[c.y * width + c.x] > 0;
 
-    public bool AddCamp(Vector2Int c)
+    /// <summary>这个格子上的营地伤害。0 表示没有营地。</summary>
+    public int GetCampDamage(Vector2Int c) =>
+        InBounds(c) ? Camps[c.y * width + c.x] : 0;
+
+    /// <summary>放一个营地。已经有营地时会覆盖成新的伤害值。</summary>
+    public bool AddCamp(Vector2Int c, int damage)
     {
         if (!InBounds(c)) return false;
 
-        int i = c.y * width + c.x;
-        if (Camps[i]) return false;
+        damage = Mathf.Max(1, damage);
 
-        Camps[i] = true;
+        int i = c.y * width + c.x;
+        if (Camps[i] == damage) return false;
+
+        Camps[i] = damage;
         OnChanged?.Invoke();
         return true;
     }
+
+    /// <summary>不指定伤害时用 defaultCampDamage</summary>
+    public bool AddCamp(Vector2Int c) => AddCamp(c, defaultCampDamage);
 
     public bool RemoveCamp(Vector2Int c)
     {
         if (!InBounds(c)) return false;
 
         int i = c.y * width + c.x;
-        if (!Camps[i]) return false;
+        if (Camps[i] == 0) return false;
 
-        Camps[i] = false;
+        Camps[i] = 0;
         OnChanged?.Invoke();
         return true;
     }
@@ -163,7 +210,8 @@ public class Gridmap : MonoBehaviour
     [ContextMenu("清空营地")]
     public void ClearCamps()
     {
-        for (int i = 0; i < Camps.Length; i++) Camps[i] = false;
+        var a = Camps;
+        for (int i = 0; i < a.Length; i++) a[i] = 0;
         OnChanged?.Invoke();
     }
 
@@ -171,7 +219,7 @@ public class Gridmap : MonoBehaviour
     {
         int n = 0;
         var a = Camps;
-        for (int i = 0; i < a.Length; i++) if (a[i]) n++;
+        for (int i = 0; i < a.Length; i++) if (a[i] > 0) n++;
         return n;
     }
 
@@ -258,8 +306,16 @@ public class Gridmap : MonoBehaviour
 
                 if (GetSpecial(c) != SpecialElement.None) Gizmos.color = new Color(0.6f, 0.9f, 1f, 0.6f);
                 else if (HasCamp(c)) Gizmos.color = new Color(1f, 0.4f, 0.4f, 0.45f);
-                else if (Get(c) == TileType.Wall) Gizmos.color = new Color(1f, 1f, 1f, 0.30f);
-                else Gizmos.color = new Color(1f, 1f, 1f, 0.06f);
+                else
+                {
+                    switch (Get(c))
+                    {
+                        case TileType.Wall: Gizmos.color = new Color(1f, 1f, 1f, 0.30f); break;
+                        case TileType.Forest: Gizmos.color = new Color(0.35f, 0.9f, 0.45f, 0.35f); break;
+                        case TileType.Desert: Gizmos.color = new Color(0.95f, 0.85f, 0.45f, 0.30f); break;
+                        default: Gizmos.color = new Color(1f, 1f, 1f, 0.06f); break;
+                    }
+                }
 
                 Gizmos.DrawCube(CellCenterWorld(c), Vector3.one * cellSize * 0.9f);
             }

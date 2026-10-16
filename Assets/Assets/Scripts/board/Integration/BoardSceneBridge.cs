@@ -18,6 +18,15 @@ namespace Game.Board
 
         [Tooltip("关掉则跳过这个阶段")]
         public bool enabled = true;
+
+        [Header("刷新权重")]
+        [Tooltip("勾上才用下面四个数；不勾则沿用关卡表里的权重")]
+        public bool useCustomWeights = false;
+
+        public int weightFire = 1;
+        public int weightWater = 1;
+        public int weightWind = 1;
+        public int weightGround = 1;
     }
 
     [Serializable]
@@ -41,6 +50,9 @@ namespace Game.Board
         private BoardLayoutConfig testLayout = new BoardLayoutConfig(
             new[] { new Vector2Int(3, 3), new Vector2Int(6, 6), new Vector2Int(3, 6), new Vector2Int(6, 3) },
             new Vector2Int(0, 0), new Vector2Int(9, 9));
+        [Header("外观")]
+        [Tooltip("棋子图占一格的比例。1 = 铺满整格")]
+        [Range(0.3f, 1f)] public float pieceFillRatio = 0.86f;
 
         // ═══════════════════════════════════════════════════════
         //  五个阶段
@@ -56,6 +68,26 @@ namespace Game.Board
             new BoardStageSlot { name = "阶段 4" },
             new BoardStageSlot { name = "阶段 5" },
         };
+
+        [Serializable]
+        public sealed class BoardStageConfig
+        {
+            [Tooltip("阶段名，只用于显示和日志")]
+            public string name = "阶段";
+
+            [Tooltip("这个阶段的步数。小于 0 表示沿用关卡表里的 init_steps")]
+            public int steps = -1;
+
+            [Tooltip("关掉则跳过这个阶段")]
+            public bool enabled = true;
+
+            // ══ 刷新权重。四个都填 -1 表示沿用关卡表；填了任意一个就整盘按这四个来 ══
+            [Header("刷新权重（-1 = 用关卡表）")]
+            public int weightFire = -1;
+            public int weightWater = -1;
+            public int weightWind = -1;
+            public int weightGround = -1;
+        }
 
         [Tooltip("关掉后步数用完不会自动推进，需要外部手动调用 AdvanceStage()")]
         [SerializeField] private bool autoAdvanceStages = true;
@@ -233,7 +265,15 @@ namespace Game.Board
         {
             if (currentLevel == null) return;
 
-            BoardStageSession candidate = BoardLevelFactory.Create(currentLevel, testLayout, StageSteps(currentStageIndex));
+            BoardStageSlot cfg = GetStageConfig(currentStageIndex);
+
+            BoardStageSession candidate = BoardLevelFactory.Create(
+                currentLevel, testLayout,
+                StageSteps(currentStageIndex),
+                cfg != null ? cfg.weightFire   : -1,
+                cfg != null ? cfg.weightWater  : -1,
+                cfg != null ? cfg.weightWind   : -1,
+                cfg != null ? cfg.weightGround : -1);
             ClearOwnedViews();
             Session = candidate;
             hasSelection = false;
@@ -248,6 +288,11 @@ namespace Game.Board
                 return stages[index].steps;
 
             return currentLevel != null ? currentLevel.InitSteps : 0;
+        }
+        BoardStageSlot GetStageConfig(int index)
+        {
+            if (stages == null || index < 0 || index >= stages.Length) return null;
+            return stages[index];
         }
 
         private int FirstEnabledStage()
@@ -503,7 +548,10 @@ namespace Game.Board
                     navigation.mode = UnityEngine.UI.Navigation.Mode.None;
                     button.navigation = navigation;
                     button.onClick.AddListener(() => ClickCell(coord));
-                    var piece = CreateImage("Piece", root.transform, new Vector2(0.13f, 0.13f), new Vector2(0.87f, 0.87f));
+                    float pieceInset = (1f - pieceFillRatio) * 0.5f;
+                    var piece = CreateImage("Piece", root.transform,
+                                            new Vector2(pieceInset, pieceInset),
+                                            new Vector2(1f - pieceInset, 1f - pieceInset));
                     GameObject labelObject = new GameObject("ElementLabel", typeof(RectTransform), typeof(TextMeshProUGUI));
                     labelObject.transform.SetParent(root.transform, false);
                     Stretch((RectTransform)labelObject.transform, Vector2.zero, Vector2.one);

@@ -113,6 +113,8 @@ namespace Game.Board
             if (!fromCell.CanOperate || !toCell.CanOperate) return false;
             if (fromCell.HasObstacle || toCell.HasObstacle) return false;
             if (!fromCell.HasPiece || toCell.HasPiece) return false;
+            // 新增：必须有一条走空格的路
+            if (!IsReachableThroughEmpty(from, to)) return false;
             return true;
         }
 
@@ -199,6 +201,52 @@ namespace Game.Board
                         cell.PlacePiece(snapshot.Pieces[x, y]);
                 }
             nextPieceId = snapshot.NextPieceId;
+        }
+        /// <summary>
+        /// to 能不能从 from 一路走空格到达。四方向洪水填充，中间不能穿过任何棋子。
+        /// </summary>
+        public bool IsReachableThroughEmpty(GridCoord from, GridCoord to)
+        {
+            if (from == to) return false;
+
+            var visited = new HashSet<GridCoord>();
+            var queue = new Queue<GridCoord>();
+
+            visited.Add(from);
+            queue.Enqueue(from);
+
+            while (queue.Count > 0)
+            {
+                GridCoord cur = queue.Dequeue();
+
+                for (int d = 0; d < 4; d++)
+                {
+                    // ⚠ 这里的 X / Y 按你 GridCoord 的实际字段名改
+                    int nx = cur.X + (d == 0 ? 1 : d == 2 ? -1 : 0);
+                    int ny = cur.Y + (d == 1 ? 1 : d == 3 ? -1 : 0);
+
+                    GridCoord next = new GridCoord(nx, ny);
+
+                    if (!IsInside(next)) continue;
+                    if (visited.Contains(next)) continue;
+
+                    CellState cell = GetCell(next);
+
+                    // 目标格：走到就算通，但本身必须是个能落脚的格子
+                    if (next == to)
+                        return !cell.HasPiece && !cell.HasObstacle && cell.CanOperate;
+
+                    // 中间格：必须是空的且能通行，才算"路"
+                    if (cell.HasPiece) continue;
+                    if (cell.HasObstacle) continue;
+                    if (!cell.CanOperate) continue;
+
+                    visited.Add(next);
+                    queue.Enqueue(next);
+                }
+            }
+
+            return false;
         }
     }
 }

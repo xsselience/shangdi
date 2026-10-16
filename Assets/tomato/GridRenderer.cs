@@ -19,11 +19,18 @@ public class GridRenderer : MonoBehaviour
     [Header("格子贴图（留空用占位方块）")]
     public Sprite groundSprite;
     public Sprite wallSprite;
+    public Sprite forestSprite;      // ← 新增
+    public Sprite desertSprite;      // ← 新增
     public Sprite campSprite;
 
     [Header("格子染色")]
+    [Tooltip("勾上：画了真实贴图的格子也用 Tint 染色。不勾：真实贴图保持原色，Tint 只作用在占位方块上")]
+    public bool tintRealSprites = false;
+
     public Color groundTint = new Color(1f, 1f, 1f, 0.06f);
     public Color wallTint = new Color(1f, 1f, 1f, 0.45f);
+    public Color forestTint = new Color(0.30f, 0.62f, 0.36f, 0.45f);   // ← 新增
+    public Color desertTint = new Color(0.88f, 0.78f, 0.46f, 0.45f);   // ← 新增
     public Color campTint = new Color(1f, 0.35f, 0.35f, 0.40f);
 
     [Header("格子")]
@@ -132,11 +139,25 @@ public class GridRenderer : MonoBehaviour
                 Sprite s;
                 Color col;
 
+                if (map.HasCamp(c))
+                {
+                    s = campSprite; col = campTint;
+                }
+                else
+                {
+                    switch (map.Get(c))
+                    {
+                        case TileType.Wall: s = wallSprite; col = wallTint; break;
+                        case TileType.Forest: s = forestSprite; col = forestTint; break;
+                        case TileType.Desert: s = desertSprite; col = desertTint; break;
+                        default: s = groundSprite; col = groundTint; break;
+                    }
+                }
                 if (map.HasCamp(c)) { s = campSprite; col = campTint; }
                 else if (map.Get(c) == TileType.Wall) { s = wallSprite; col = wallTint; }
-                else { s = groundSprite; col = groundTint; }
 
-                if (s == null) s = SpriteFactory.WhiteSquare;
+                bool isPlaceholder = s == null;
+                if (isPlaceholder) s = SpriteFactory.WhiteSquare;
 
                 if (sr.sprite != s)
                 {
@@ -146,15 +167,20 @@ public class GridRenderer : MonoBehaviour
                     float size = map.cellSize * cellFitRatio;
 
                     if (b.x > 0.0001f && b.y > 0.0001f)
-                        sr.transform.localScale =
-                            new Vector3(size / b.x, size / b.y, 1f);
+                        sr.transform.localScale = new Vector3(size / b.x, size / b.y, 1f);
                 }
 
-                sr.color = col;
+                // 占位方块才用半透明 Tint；真实贴图默认保持原色
+                sr.color = (isPlaceholder || tintRealSprites) ? col : Color.white;
                 sr.sortingOrder = cellSortingOrder;
             }
     }
 
+    void OnValidate()
+    {
+        // 运行中在 Inspector 里改贴图，立刻生效，不用等地图再变一次
+        if (Application.isPlaying) Refresh();
+    }
     void Clear()
     {
         Kill(_root != null ? _root.gameObject : null);

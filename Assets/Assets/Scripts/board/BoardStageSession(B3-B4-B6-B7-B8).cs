@@ -17,6 +17,8 @@ namespace Game.Board
         private readonly SpawnRules spawnRules;
         private SpawnContext spawnContext;
         private BoardSettlementResult settlement;
+        /// <summary>每次非合成移动补几个棋子。</summary>
+        private const int SpawnPerMove = 2;
 
         public BoardState Board { get; private set; }
         public int InitialSteps { get; private set; }
@@ -89,13 +91,27 @@ namespace Game.Board
                 }
                 else
                 {
-                    spawn = SpawnResolver.TrySpawnAfterMove(Board, spawnRules, spawnContext);
-                    if (!spawn.Success)
+                    // 非合成移动：补棋。棋盘满之前，尽量补满 SpawnPerMove 个
+                    SpawnResult lastSpawn = null;
+                    int spawned = 0;
+
+                    for (int i = 0; i < SpawnPerMove; i++)
+                    {
+                        lastSpawn = SpawnResolver.TrySpawnAfterMove(Board, spawnRules, spawnContext);
+                        if (!lastSpawn.Success) break;   // 补不下去了，能补几个算几个
+
+                        spawned++;
+                    }
+
+                    // 一个都没补上才算失败（整步回滚，不扣步数）
+                    if (spawned == 0)
                     {
                         Board.RestorePieceSnapshot(before);
-                        result = Failure(from, to, BoardTurnFailure.SpawnFailed, spawn);
+                        result = Failure(from, to, BoardTurnFailure.SpawnFailed, lastSpawn);
                         return false;
                     }
+
+                    spawn = lastSpawn;
                 }
                 RemainingSteps--;
                 UpdateEnding(false);

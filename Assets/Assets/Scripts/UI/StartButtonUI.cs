@@ -1,5 +1,6 @@
 using UnityEngine;
 using Game.Board;
+using Assets.Scripts.UI;
 using UnityEngine.SceneManagement;
 
 public class StartButtonUI : MonoBehaviour
@@ -9,6 +10,9 @@ public class StartButtonUI : MonoBehaviour
     [Header("UI 面板")]
     [SerializeField] private RectTransform mainScreen;
     [SerializeField] private RectTransform subScreen;
+
+    [Tooltip("规则面板。开始游戏之后按这个按钮会把它打开")]
+    [SerializeField] private RulePanelUI rulePanel;
 
     [Header("第一棋盘")]
     [SerializeField] private Transform firstBoard;
@@ -193,7 +197,11 @@ public class StartButtonUI : MonoBehaviour
                 GameEventCenter.Instance.RequestStartGame();
                 break;
             case GameState.Playing:
+                // 游戏已经开始了，这个按钮改成"打开规则"
                 GameEventCenter.Instance.RequestPauseGame();
+
+                if (rulePanel != null) rulePanel.Show();
+                else Debug.LogWarning("StartButtonUI: rulePanel 未指定，规则面板不会打开", this);
                 break;
         }
     }
@@ -229,6 +237,24 @@ public class StartButtonUI : MonoBehaviour
         if (secondBoard != null)
             secondBoard.localScale = Vector3.one *
                 (secondBoardActive ? secondScaleOnSecondBoard : secondScaleOnFirstBoard);
+    }
+    // ─────────────────────────────────────────────
+    //  手动切换聚焦（点棋盘触发）
+    // ─────────────────────────────────────────────
+    /// <summary>点上方棋盘 / 第一棋盘时调这个</summary>
+    [ContextMenu("聚焦第一棋盘")]
+    public void FocusFirstBoard()
+    {
+        Debug.Log("StartButtonUI: 手动聚焦第一棋盘", this);
+        ApplyBoardScales(false);      // false = 第一棋盘大、第二棋盘小
+    }
+
+    /// <summary>点下方棋盘 / 第二棋盘时调这个</summary>
+    [ContextMenu("聚焦第二棋盘")]
+    public void FocusSecondBoard()
+    {
+        Debug.Log("StartButtonUI: 手动聚焦第二棋盘", this);
+        ApplyBoardScales(true);       // true = 第二棋盘大、第一棋盘小
     }
 
     // ═══════════════════════════════════════════════════════

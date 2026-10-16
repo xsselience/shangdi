@@ -17,7 +17,8 @@ namespace Game.Board
         /// 这个参数只影响本次创建的 session，不会写回 LevelConfig。
         /// </summary>
         public static BoardStageSession Create(LevelConfig level, BoardLayoutConfig layout,
-            int? stepOverride = null)
+            int? stepOverride = null,
+            int wFire = -1, int wWater = -1, int wWind = -1, int wGround = -1)
         {
             if (level == null) throw new ArgumentNullException(nameof(level));
             BoardConfig config = Resources.Load<BoardConfig>("Configs/Boards/BoardConfig_" + level.BoardId);
@@ -27,7 +28,8 @@ namespace Game.Board
             if (!BoardInitialLayoutGenerator.TryGenerate(config.Width, config.Height, layout, out initial, out error))
                 throw new InvalidOperationException(error);
 
-            SpawnRules rules = CreateSpawnRules(level.LevelId, config.Width, config.Height);
+            SpawnRules rules = CreateSpawnRules(level.LevelId, config.Width, config.Height,
+                                               wFire, wWater, wWind, wGround);
             for (int i = 0; i < level.InitPieceCount; i++)
             {
                 SpawnResult spawn = SpawnResolver.TrySpawnOne(initial.Board, rules, SpawnContext.Neutral);
@@ -47,9 +49,29 @@ namespace Game.Board
         /// 先为每格选出唯一有效区域，再生成互不重叠的权重规则，避免把覆盖误做成相乘。
         /// 尚未接入环境状态的条件区域不启用。无区域的关卡临时使用全盘默认权重。
         /// </summary>
-        public static SpawnRules CreateSpawnRules(int levelId, int width, int height)
+        public static SpawnRules CreateSpawnRules(int levelId, int width, int height,
+           int wFire = -1, int wWater = -1, int wWind = -1, int wGround = -1)
         {
             var zones = new List<RefreshZoneConfig>();
+            bool hasOverride = wFire >= 0 || wWater >= 0 || wWind >= 0 || wGround >= 0;
+
+            if (hasOverride)
+            {
+                int f = Mathf.Max(0, wFire);
+                int wa = Mathf.Max(0, wWater);
+                int wi = Mathf.Max(0, wWind);
+                int g = Mathf.Max(0, wGround);
+
+                Debug.Log($"BoardLevelFactory: 关卡 {levelId} 用阶段覆盖权重 " +
+                          $"火{f} 水{wa} 风{wi} 土{g}");
+
+                var overrideAreas = new List<SpawnArea>();
+                overrideAreas.Add(new SpawnArea(0, 0, width, height));
+
+                return new SpawnRules(overrideAreas.ToArray(), Elements,
+                                      new ElementWeights(f, wa, wi, g),
+                                      new RegionWeightRule[0]);
+            }
             foreach (RefreshZoneConfig zone in Resources.LoadAll<RefreshZoneConfig>("Configs/Zones"))
             {
                 if (zone.LevelId != levelId) continue;

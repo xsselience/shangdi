@@ -11,7 +11,7 @@ public enum TileType
 }
 
 /// 第二棋盘上的特殊棋子类型。和第一棋盘的 ElementType 一一对应
-public enum SpecialElement { None = 0, Fire = 1, Water = 2, Wind = 3, Ground = 4 }
+public enum SpecialElement { None = 0, Fire = 1, Water = 2, Wind = 3, Ground = 4, Ash = 5 }
 
 public class Gridmap : MonoBehaviour
 {
@@ -43,6 +43,10 @@ public class Gridmap : MonoBehaviour
     [Range(0f, 2f)] public float forestSpeed = 0.5f;
     [Range(0f, 2f)] public float desertSpeed = 1f;
     [Range(0f, 2f)] public float wallSpeed = 1f;
+
+    [Header("特殊棋子影响")]
+    [Tooltip("踩到特殊风时的行动力倍率")]
+    [Range(1f, 3f)] public float windSpecialSpeed = 1.5f;
 
     // ══ 地形：序列化，随场景保存，在自定义 Inspector 里点画 ══
     [SerializeField, HideInInspector] private TileType[] _tiles;
@@ -130,13 +134,20 @@ public class Gridmap : MonoBehaviour
 
     public float MoveSpeedMultiplier(Vector2Int c)
     {
+        float m;
+
         switch (Get(c))
         {
-            case TileType.Forest: return Mathf.Max(0f, forestSpeed);
-            case TileType.Desert: return Mathf.Max(0f, desertSpeed);
-            case TileType.Wall: return Mathf.Max(0f, wallSpeed);
-            default: return Mathf.Max(0f, groundSpeed);
+            case TileType.Forest: m = Mathf.Max(0f, forestSpeed); break;
+            case TileType.Desert: m = Mathf.Max(0f, desertSpeed); break;
+            case TileType.Wall: m = Mathf.Max(0f, wallSpeed); break;
+            default: m = Mathf.Max(0f, groundSpeed); break;
         }
+
+        // 特殊风：踩在上面行动力更快
+        if (GetSpecial(c) == SpecialElement.Wind) m *= Mathf.Max(1f, windSpecialSpeed);
+
+        return m;
     }
 
     public static string TerrainName(TileType t)

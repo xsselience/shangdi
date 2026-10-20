@@ -1,6 +1,8 @@
 using System.Collections;
 using UnityEngine;
 using UnityEngine.Events;
+using UnityEngine.SceneManagement;
+
 #if ENABLE_INPUT_SYSTEM && !ENABLE_LEGACY_INPUT_MANAGER
 using UnityEngine.InputSystem;
 #endif
@@ -49,6 +51,13 @@ public class IntroSequence : MonoBehaviour
     public float hintPeriod = 1.2f;
 
     [Range(0f, 1f)] public float hintMinAlpha = 0.3f;
+
+    [Header("结束后跳转")]
+    [Tooltip("播完之后要去的场景名。留空则不跳转")]
+    public string nextSceneName = "LevelScene";
+
+    [Tooltip("播完之后等多少秒再跳。给结尾留一点缓冲")]
+    public float delayBeforeLoad = 0.3f;
 
     [Header("结束后")]
     public UnityEvent onFinished;
@@ -178,6 +187,18 @@ public class IntroSequence : MonoBehaviour
 
         Debug.Log("IntroSequence: 开场动画结束", this);
         if (onFinished != null) onFinished.Invoke();
+
+        // 只在"真的播完"的时候跳场景。
+        // 从游戏里回到标题页时 _playedThisRun 是 true，
+        // 走的是 Start() 里的跳过分支，根本不会执行到这里 ✓
+        if (!string.IsNullOrEmpty(nextSceneName))
+        {
+            if (delayBeforeLoad > 0f)
+                yield return new WaitForSecondsRealtime(delayBeforeLoad);
+
+            Debug.Log($"IntroSequence: 载入场景「{nextSceneName}」", this);
+            SceneManager.LoadScene(nextSceneName);
+        }
     }
 
     string ResolveClip()

@@ -1,5 +1,4 @@
 using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class UnitView : MonoBehaviour
@@ -25,6 +24,23 @@ public class UnitView : MonoBehaviour
     [Tooltip("越大越跟手，越小越飘")]
     public float followSharpness = 14f;
 
+    [Header("死亡动画")]
+    [Tooltip("按顺序排好。留空则死亡时直接消失")]
+    public Sprite[] deathFrames;
+
+    [Tooltip("每帧停留多少秒")]
+    public float deathFrameDuration = 0.12f;
+
+    [Header("开火动画（撞击时）")]
+    [Tooltip("按顺序排好。留空则撞击时直接消失")]
+    public Sprite[] attackFrames;
+
+    [Tooltip("每帧停留多少秒")]
+    public float attackFrameDuration = 0.1f;
+
+    /// <summary>正在播一次性动画（死亡 / 开火）时为 true，期间不跟随、不覆盖贴图</summary>
+    public bool IsBusy { get; private set; }
+
     Sprite _applied;
     bool _warned;
     bool _needsSnap = true;
@@ -37,7 +53,7 @@ public class UnitView : MonoBehaviour
 
     void OnEnable()
     {
-        _needsSnap = true;                              // 每次被激活，第一帧直接归位
+        _needsSnap = true;
         if (agent != null) agent.OnReset += SnapToCell;
     }
 
@@ -46,8 +62,6 @@ public class UnitView : MonoBehaviour
         if (agent != null) agent.OnReset -= SnapToCell;
     }
 
-    // 用 LateUpdate：跑在所有人的 Start / Update 之后，
-    // 这时棋盘缩放的改动已经生效，归位才是准的
     void LateUpdate()
     {
         if (agent == null || agent.map == null)
@@ -56,20 +70,80 @@ public class UnitView : MonoBehaviour
             return;
         }
 
+        // 一次性动画期间不要覆盖贴图、不要跟随
+        if (IsBusy) return;
+
         EnsureVisual();
         ApplySprite();
 
         if (_needsSnap)
         {
             _needsSnap = false;
-            SnapToCell();                               // 直接到位，不插值
+            SnapToCell();
             return;
         }
 
         Follow();
     }
 
-    /// <summary>立刻把贴图挪到当前格子中心，不做插值。外部也可以调。</summary>
+    // ─────────────────────────────────────────────
+    //  一次性动画
+    // ─────────────────────────────────────────────
+    /// <summary>播放死亡帧动画，播完之后调 onDone。</summary>
+    public void PlayDeath(System.Action onDone)
+    {
+        PlayOnce(deathFrames, deathFrameDuration, onDone);
+    }
+
+    /// <summary>播放开火帧动画，播完之后调 onDone。</summary>
+    public void PlayAttack(System.Action onDone)
+    {
+        PlayOnce(attackFrames, attackFrameDuration, onDone);
+    }
+
+    /// <summary>通用：播一组帧一次。没有配帧 / 正在忙，都会立刻调 onDone。</summary>
+    public void PlayOnce(Sprite[] frames, float frameDuration, System.Action onDone)
+    {
+        if (IsBusy)
+        {
+            if (onDone != null) onDone.Invoke();
+            return;
+        }
+
+        if (frames == null || frames.Length == 0 || spriteRenderer == null)
+        {
+            if (onDone != null) onDone.Invoke();
+            return;
+        }
+
+        IsBusy = true;
+        StartCoroutine(PlayOnceRoutine(frames, frameDuration, onDone));
+    }
+
+    IEnumerator PlayOnceRoutine(Sprite[] frames, float frameDuration, System.Action onDone)
+    {
+        float delay = Mathf.Max(0.02f, frameDuration);
+
+        for (int i = 0; i < frames.Length; i++)
+        {
+            if (frames[i] != null) spriteRenderer.sprite = frames[i];
+
+            float t = 0f;
+            while (t < 1f)
+            {
+                t += Time.unscaledDeltaTime / delay;
+                yield return null;
+            }
+        }
+
+        IsBusy = false;
+
+        if (onDone != null) onDone.Invoke();
+    }
+
+    // ─────────────────────────────────────────────
+    //  位置
+    // ─────────────────────────────────────────────
     public void SnapToCell()
     {
         if (agent == null || agent.map == null || spriteRenderer == null) return;
@@ -78,6 +152,19 @@ public class UnitView : MonoBehaviour
             agent.map.CellCenterWorld(agent.GridPos) + new Vector3(0f, 0f, zOffset);
     }
 
+    void Follow()
+    {
+        Vector3 target = agent.map.CellCenterWorld(agent.GridPos)
+                       + new Vector3(0f, 0f, zOffset);
+
+        float k = 1f - Mathf.Exp(-followSharpness * Time.deltaTime);
+        spriteRenderer.transform.position =
+            Vector3.Lerp(spriteRenderer.transform.position, target, k);
+    }
+
+    // ─────────────────────────────────────────────
+    //  外观
+    // ─────────────────────────────────────────────
     void Warn(string msg)
     {
         if (_warned) return;
@@ -132,15 +219,5 @@ public class UnitView : MonoBehaviour
 
         spriteRenderer.transform.localScale =
             Vector3.one * (agent.map.cellSize * fitRatio / w);
-    }
-
-    void Follow()
-    {
-        Vector3 target = agent.map.CellCenterWorld(agent.GridPos)
-                       + new Vector3(0f, 0f, zOffset);
-
-        float k = 1f - Mathf.Exp(-followSharpness * Time.deltaTime);
-        spriteRenderer.transform.position =
-            Vector3.Lerp(spriteRenderer.transform.position, target, k);
     }
 }

@@ -8,7 +8,8 @@ namespace Assets.Scripts.UI
         [SerializeField] private TMP_Text timeText;
         [SerializeField] private TMP_Text pointText;
 
-        private float _remainTime;
+        private float _elapsed;             // 已经过去多少秒
+        private float _limit = 600f;        // 关卡时限。到了就触发 OnTimeUp
         private float _point = 0;
         private bool isCounting;
 
@@ -32,12 +33,13 @@ namespace Assets.Scripts.UI
             isCounting = state == GameState.Playing;
         }
 
-        /// <summary>
-        /// 换关时自动重读当前关卡配置
-        /// </summary>
+        /// <summary>换关时重新开始计时</summary>
         private void OnLevelChanged(LevelConfig level)
         {
-            _remainTime = level.TimeLimit;
+            if (level == null) return;
+
+            _limit = level.TimeLimit;
+            _elapsed = 0f;
             UpdateTimeText();
         }
 
@@ -45,28 +47,28 @@ namespace Assets.Scripts.UI
         {
             // LevelManager 启动时已经广播过 LevelChanged，这里兜底读一次，
             // 防止本面板比广播晚激活而错过
-            if (LevelManager.Instance.CurrentLevel != null)
-            {
-                _remainTime = LevelManager.Instance.CurrentLevel.TimeLimit;
-            }
+            if (LevelManager.Instance != null && LevelManager.Instance.CurrentLevel != null)
+                _limit = LevelManager.Instance.CurrentLevel.TimeLimit;
+
+            _elapsed = 0f;
 
             //TODO:这里要做得分丢分逻辑
             pointText.text = $"{_point}";
+
             isCounting = GameManager.Instance.CurrentState == GameState.Playing;
             UpdateTimeText();
         }
 
         private void Update()
         {
-            if (!isCounting)
-                return;
-            
-            //TODO：时间到底时会结束游戏，这里要做逻辑
-            _remainTime -= Time.deltaTime;  
+            if (!isCounting) return;
 
-            if (_remainTime <= 0f)
+            //TODO：时间到底时会结束游戏，这里要做逻辑
+            _elapsed += Time.deltaTime;
+
+            if (_elapsed >= _limit)
             {
-                _remainTime = 0f;
+                _elapsed = _limit;
                 isCounting = false;
                 OnTimeUp();
             }
@@ -76,11 +78,10 @@ namespace Assets.Scripts.UI
 
         private void UpdateTimeText()
         {
-            int totalSeconds = Mathf.CeilToInt(_remainTime);
+            int totalSeconds = Mathf.FloorToInt(_elapsed);   // 往上计时用 Floor
             int minutes = totalSeconds / 60;
             int seconds = totalSeconds % 60;
 
-            // "xx:xx"，不足两位补零
             timeText.text = $"{minutes:00}:{seconds:00}";
         }
 

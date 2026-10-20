@@ -407,6 +407,24 @@ public class BattleFlow : MonoBehaviour
         return list;
     }
 
+    /// <summary>让所有单位的贴图立刻归位。棋盘缩放之后调用。</summary>
+    public void SnapAllViews()
+    {
+        SnapPool(_allPlayers);
+        SnapPool(_allEnemies);
+    }
+
+    void SnapPool(List<PathAgent> pool)
+    {
+        foreach (PathAgent u in pool)
+        {
+            if (u == null) continue;
+
+            UnitView view = u.GetComponent<UnitView>();
+            if (view != null) view.SnapToCell();
+        }
+    }
+
     IEnumerable<PathAgent> LevelEnemies()
     {
         SecondBoardLevel lv = CurrentLevel;
@@ -506,7 +524,12 @@ public class BattleFlow : MonoBehaviour
 
                 if (!b.TryStep()) break;
 
+                // ★ B 也要触发元素效果（火焰扣血等）
+                b.ResolveElementEffect();
+                if (Current != Phase.Battle) return;
+
                 if (HandleContact(b)) return;
+
             }
         }
 
@@ -589,7 +612,16 @@ public class BattleFlow : MonoBehaviour
 
             HealthOf(victim)?.TakeDamage(damage, "被敌方单位撞击");
 
-            attacker.Despawn();
+            // ① 立刻停止行动，但不隐藏 —— 给开火动画留时间
+            attacker.SetInactive();
+
+            // ② 播开火动画，播完再真正退场
+            UnitView attackerView = attacker.GetComponent<UnitView>();
+            if (attackerView != null)
+                attackerView.PlayAttack(() => { if (attacker != null) attacker.Despawn(); });
+            else
+                attacker.Despawn();
+
             Debug.Log($"BattleFlow: {attacker.name} 撞击后消失", this);
 
             return true;
@@ -634,9 +666,19 @@ public class BattleFlow : MonoBehaviour
         if (Current != Phase.Battle) return;
 
         PathAgent unit = hp != null ? hp.agent : null;
-        if (unit != null) unit.Despawn();
+        if (unit == null) return;
 
-        // A 全灭 = 失败
+        // ① 立刻停止行动，但不隐藏 —— 给死亡动画留时间
+        unit.SetInactive();
+
+        // ② 播死亡动画，播完再真正退场
+        UnitView view = unit.GetComponent<UnitView>();
+        if (view != null)
+            view.PlayDeath(() => { if (unit != null) unit.Despawn(); });
+        else
+            unit.Despawn();
+
+        // ③ A 全灭 = 失败
         if (IsPlayerUnit(unit) && !AnyPlayerAlive())
         {
             Debug.Log("BattleFlow: A 已全部阵亡", this);
@@ -733,6 +775,7 @@ public class BattleFlow : MonoBehaviour
             Debug.Log($"BattleFlow: 本回合共留下 {built} 个营地（场上共 {map.CampCount()} 个）", this);
 
         RoundIndex++;
+        AgeSpecials();
 
         // 全部归位（退场的会重新出现）
         foreach (PathAgent u in _allPlayers) if (u != null) u.ResetToStart();
@@ -755,6 +798,37 @@ public class BattleFlow : MonoBehaviour
         RecomputeAll();
 
         Debug.Log($"BattleFlow: 进入第 {RoundIndex + 1} 章", this);
+    }
+
+    // ── 回合结束：水/风消失，火变灰烬，土保留 ──
+    void AgeSpecials()
+    {
+        if (map == null) return;
+
+        int vanished = 0;
+        int burned = 0;
+
+        for (int y = 0; y < map.height; y++)
+            for (int x = 0; x < map.width; x++)
+            {
+                var c = new Vector2Int(x, y);
+
+                switch (map.GetSpecial(c))
+                {
+                    case SpecialElement.Water:
+                    case SpecialElement.Wind:
+                        map.SetSpecial(c, SpecialElement.None);
+                        vanished++;
+                        break;
+
+                    case SpecialElement.Fire:
+                        map.SetSpecial(c, SpecialElement.Ash);
+                        burned++;
+                        break;
+                }
+            }
+
+        Debug.Log($"BattleFlow: 回合结束 —— 水/风消失 {vanished} 个，火变成灰烬 {burned} 个", this);
     }
 
     [ContextMenu("结束阶段衔接")]

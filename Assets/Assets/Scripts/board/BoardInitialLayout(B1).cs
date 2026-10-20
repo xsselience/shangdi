@@ -16,6 +16,8 @@ namespace Game.Board
     [Serializable]
     public sealed class BoardLayoutConfig
     {
+
+
         [Tooltip("固定的障碍物坐标列表。格式：(x, y)")]
         [SerializeField] private Vector2Int[] obstaclePositions = new Vector2Int[0];
 

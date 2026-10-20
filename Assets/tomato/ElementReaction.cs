@@ -14,14 +14,12 @@ public class ElementReaction
     [SerializeField] private int windLiftHeight = 1;
 
     [Header("火元素")]
-    [SerializeField] private int forestBurnRange = 1;
-    [SerializeField] private int fireSpreadLimit;
+    [SerializeField] private int fireDamage = 20;
 
     public int WaterHealAmount { get { return waterHealAmount; } }
     public bool EarthBlocksPath { get { return earthBlocksPath; } }
     public int WindLiftHeight { get { return windLiftHeight; } }
-    public int ForestBurnRange { get { return forestBurnRange; } }
-    public int FireSpreadLimit { get { return fireSpreadLimit; } }
+    public int FireDamage { get { return fireDamage; } }
 
     public int GetStartingElevation(Gridmap map, Vector2Int position)
     {
@@ -44,6 +42,7 @@ public class ElementReaction
 
         bool wall = map.Get(to) == TileType.Wall;
         bool earth = IsEarthPathBlocked(map, to);
+
         if (wall || earth)
         {
             int requiredElevation = Mathf.Max(1, windLiftHeight);
@@ -56,6 +55,7 @@ public class ElementReaction
         return true;
     }
 
+    /// <summary>走上一格之后触发的效果。由 PathAgent 转调，BattleFlow 决定什么时候调。</summary>
     public void HandleUnitStep(PathAgent agent)
     {
         if (agent == null || agent.map == null) return;
@@ -65,8 +65,9 @@ public class ElementReaction
             case SpecialElement.Water:
                 ApplyWaterReaction(agent);
                 break;
+
             case SpecialElement.Fire:
-                ApplyFireReaction(agent.map, agent.GridPos);
+                ApplyFireReaction(agent);
                 break;
         }
     }
@@ -77,16 +78,14 @@ public class ElementReaction
         if (health != null) health.Heal(waterHealAmount);
     }
 
+    private void ApplyFireReaction(PathAgent agent)
+    {
+        UnitHealth health = agent.GetComponent<UnitHealth>();
+        if (health != null) health.TakeDamage(fireDamage, "特殊火");
+    }
+
     private bool IsEarthPathBlocked(Gridmap map, Vector2Int position)
     {
         return earthBlocksPath && map.GetSpecial(position) == SpecialElement.Ground;
-    }
-
-    private void ApplyFireReaction(Gridmap map, Vector2Int position)
-    {
-    }
-
-    private void SpreadFire(Gridmap map, Vector2Int position, int remainingSpread)
-    {
     }
 }

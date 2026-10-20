@@ -88,6 +88,7 @@ namespace Game.Board
             public int weightWind = -1;
             public int weightGround = -1;
         }
+        private AudioSource _sfx;
 
         [Tooltip("关掉后步数用完不会自动推进，需要外部手动调用 AdvanceStage()")]
         [SerializeField] private bool autoAdvanceStages = true;
@@ -105,6 +106,58 @@ namespace Game.Board
         [SerializeField] private Sprite windSprite;
         [SerializeField] private Sprite groundSprite;
 
+        [Header("特殊棋子美术（留空则用普通图 + 「特」字）")]
+        [SerializeField] private Sprite fireSpecialSprite;
+        [SerializeField] private Sprite waterSpecialSprite;
+        [SerializeField] private Sprite windSpecialSprite;
+        [SerializeField] private Sprite groundSpecialSprite;
+
+        [Header("合成音效（留空则不播）")]
+        [SerializeField] private AudioClip fireSynthesisClip;
+        [SerializeField] private AudioClip waterSynthesisClip;
+        [SerializeField] private AudioClip windSynthesisClip;
+        [SerializeField] private AudioClip groundSynthesisClip;
+
+        [Range(0f, 1f)]
+        [SerializeField] private float synthesisVolume = 0.8f;
+
+        [Header("棋面美术")]
+        [Tooltip("普通状态。选中棋子后，走不到的格子用这张")]
+        public Sprite cellNormalSprite;
+
+        [Header("棋面：A / B 交叉显示")]
+        [Tooltip("A 面 · 高亮（正常状态）")]
+        [SerializeField] private Sprite cellASprite;
+
+        [Tooltip("A 面 · 暗淡（选中棋子后走不到的格子）")]
+        [SerializeField] private Sprite cellADimSprite;
+
+        [Tooltip("B 面 · 高亮")]
+        [SerializeField] private Sprite cellBSprite;
+
+        [Tooltip("B 面 · 暗淡")]
+        [SerializeField] private Sprite cellBDimSprite;
+
+        [Header("状态染色（乘在棋面图上，纯白 = 原色）")]
+        [SerializeField] private Color cellSelectedTint = new Color(1f, 0.9f, 0.35f, 1f);
+        [SerializeField] private Color cellBlockedTint = new Color(0.35f, 0.38f, 0.45f, 1f);
+
+        [Tooltip("有障碍 / 不可操作的格子。留空则用普通图")]
+        public Sprite cellBlockedSprite;
+
+        [Header("第二棋盘 → 第一棋盘障碍")]
+        [Tooltip("留空则不启用这个规则")]
+        public Gridmap worldMap;
+
+        [Header("保留棋子留下的 × 的颜色")]
+        public Color fireCrossColor = new Color(1f, 0.35f, 0.30f);
+        public Color waterCrossColor = new Color(0.35f, 0.68f, 1f);
+        public Color windCrossColor = new Color(0.42f, 0.95f, 0.72f);
+        public Color groundCrossColor = new Color(1f, 0.78f, 0.35f);
+
+        readonly Dictionary<Vector2Int, SpecialElement> _retainedAt =
+       new Dictionary<Vector2Int, SpecialElement>();
+
         private sealed class CellView
         {
             public GameObject Root;
@@ -112,6 +165,8 @@ namespace Game.Board
             public UnityEngine.UI.Button Button;
             public UnityEngine.UI.Image Piece;
             public TMP_Text Label;
+            public bool Odd;
+            public Vector2Int Cell;
         }
 
         private readonly Dictionary<GridCoord, CellView> views = new Dictionary<GridCoord, CellView>();
@@ -266,20 +321,108 @@ namespace Game.Board
             if (currentLevel == null) return;
 
             BoardStageSlot cfg = GetStageConfig(currentStageIndex);
+            bool custom = cfg != null && cfg.useCustomWeights;
 
-            BoardStageSession candidate = BoardLevelFactory.Create(
-                currentLevel, testLayout,
-                StageSteps(currentStageIndex),
-                cfg != null ? cfg.weightFire   : -1,
-                cfg != null ? cfg.weightWater  : -1,
-                cfg != null ? cfg.weightWind   : -1,
-                cfg != null ? cfg.weightGround : -1);
+            CollectRetainedSpecials();
+            BoardLayoutConfig layout = BuildLayoutWithRetained();
+
+            BoardStageSession candidate;
+
+            try
+            {
+                candidate = BoardLevelFactory.Create(
+                    currentLevel, layout,
+                    StageSteps(currentStageIndex),
+                    custom ? cfg.weightFire : -1,
+                    custom ? cfg.weightWater : -1,
+                    custom ? cfg.weightWind : -1,
+                    custom ? cfg.weightGround : -1);
+            }
+            catch (System.Exception ex)
+            {
+                Debug.LogWarning(
+                    $"BoardSceneBridge: 合并保留棋子后建板失败（{ex.Message}），" +
+                    $"本次改用关卡原始障碍，不带 × 效果", this);
+
+                candidate = BoardLevelFactory.Create(
+                    currentLevel, testLayout,
+                    StageSteps(currentStageIndex),
+                    custom ? cfg.weightFire : -1,
+                    custom ? cfg.weightWater : -1,
+                    custom ? cfg.weightWind : -1,
+                    custom ? cfg.weightGround : -1);
+            }
+
             ClearOwnedViews();
             Session = candidate;
             hasSelection = false;
             BuildViews();
 
             RunStageBegin(currentStageIndex);
+        }
+        void CollectRetainedSpecials()
+        {
+            _retainedAt.Clear();                    // ① 每次都重新读，不累积
+
+            if (worldMap == null) return;           // ② 没拖就不启用这个规则
+
+            for (int y = 0; y < worldMap.height; y++)
+                for (int x = 0; x < worldMap.width; x++)
+                {
+                    SpecialElement e = worldMap.GetSpecial(new Vector2Int(x, y));
+                    if (e == SpecialElement.None) continue;     // ③ 空格跳过
+
+                    if (x >= Board.Width || y >= Board.Height) continue;   // ④ 超出第一棋盘范围就跳过
+
+                    // 只有土和灰烬会在第一棋盘上变成不可通行
+                    if (e != SpecialElement.Ground && e != SpecialElement.Ash) continue;
+
+                    _retainedAt[new Vector2Int(x, y)] = e;
+                }
+
+            if (_retainedAt.Count > 0)
+                Debug.Log($"BoardSceneBridge: 第二棋盘保留了 {_retainedAt.Count} 个棋子，" +
+                          $"它们在第一棋盘上会变成障碍", this);
+        }
+
+        BoardLayoutConfig BuildLayoutWithRetained()
+        {
+            if (testLayout == null) return testLayout;
+
+            var obstacles = new List<Vector2Int>();
+
+            // 关卡的固定障碍原样保留
+            obstacles.AddRange(testLayout.ObstaclePositions);
+
+            Vector2Int start = testLayout.AnimalStart;
+            Vector2Int end = testLayout.AnimalEnd;
+
+            foreach (Vector2Int c in _retainedAt.Keys)
+            {
+                // 坑 1：压在起点/终点上会被 Validate 抛异常
+                if (c == start || c == end) continue;
+
+                if (!obstacles.Contains(c)) obstacles.Add(c);
+            }
+
+            // 没有新增就不必造新对象
+            if (obstacles.Count == testLayout.ObstaclePositions.Count)
+                return testLayout;
+
+            return new BoardLayoutConfig(obstacles.ToArray(), start, end);
+        }
+
+        Color CrossColor(SpecialElement e)
+        {
+            switch (e)
+            {
+                case SpecialElement.Fire: return fireCrossColor;
+                case SpecialElement.Water: return waterCrossColor;
+                case SpecialElement.Wind: return windCrossColor;
+                case SpecialElement.Ground: return groundCrossColor;
+                case SpecialElement.Ash: return new Color(0.45f, 0.42f, 0.40f);
+                default: return new Color(0.08f, 0.09f, 0.12f);
+            }
         }
 
         private int StageSteps(int index)
@@ -434,6 +577,7 @@ namespace Game.Board
                 BoardTurnResult result;
                 if (!Session.TryMove(selected, coord, out result)) return false;
                 hasSelection = false;
+                PlaySynthesisSound(result);
                 CompleteEndedStage();
                 Notify(TurnCompleted, result);
                 return true;
@@ -466,7 +610,10 @@ namespace Game.Board
             if (Session.TryEndManually()) CompleteEndedStage();
             RefreshViews();
         }
-
+        static Sprite Pick(Sprite primary, Sprite fallback)
+        {
+            return primary != null ? primary : fallback;
+        }
         // ─────────────────────────────────────────────
         //  显示
         // ─────────────────────────────────────────────
@@ -487,22 +634,94 @@ namespace Game.Board
             {
                 CellState cell = Board.GetCell(pair.Key);
                 CellView view = pair.Value;
+
                 bool special = cell.HasPiece && cell.Piece.Kind == PieceKind.Special;
-                view.Background.color = cell.HasObstacle || !cell.CanOperate ? new Color(0.22f, 0.25f, 0.29f) :
-                    special ? new Color(0.8f, 0.56f, 0.95f) : new Color(0.72f, 0.75f, 0.79f);
-                if (hasSelection && pair.Key == selected) view.Background.color = new Color(1f, 0.9f, 0.32f);
-                else if (hasSelection && Board.CanTransferPiece(selected, pair.Key))
-                    view.Background.color = new Color(0.5f, 0.87f, 0.55f);
+                bool blocked = cell.HasObstacle || !cell.CanOperate;
+                bool isSelected = hasSelection && pair.Key == selected;
+                bool reachable = hasSelection && Board.CanTransferPiece(selected, pair.Key);
+
+                // ── 先决定这一格用哪张棋面 ──
+                // ── 棋面：A/B 交叉 + 高亮/暗淡 ──
+                Sprite bright = view.Odd ? cellBSprite : cellASprite;
+                Sprite dim = view.Odd ? cellBDimSprite : cellADimSprite;
+
+                Sprite face;
+                Color tint;
+
+                if (blocked)
+                {
+                    face = Pick(dim, bright);
+                    tint = cellBlockedTint;
+                }
+                else if (isSelected)
+                {
+                    face = Pick(bright, cellASprite);
+                    tint = cellSelectedTint;
+                }
+                else if (hasSelection && !reachable)
+                {
+                    // 走不到 → 换成暗淡的那张
+                    face = Pick(dim, bright);
+                    tint = Color.white;
+                }
+                else
+                {
+                    // 平时 / 走得到 → 高亮
+                    face = Pick(bright, cellASprite);
+                    tint = Color.white;
+                }
+
+                if (face != null)
+                {
+                    if (view.Background.sprite != face) view.Background.sprite = face;
+                    view.Background.color = tint;
+                }
+                else
+                {
+                    // 四张棋面图都没配 → 退回原来的纯色逻辑
+                    if (blocked) view.Background.color = new Color(0.22f, 0.25f, 0.29f);
+                    else if (special) view.Background.color = new Color(0.8f, 0.56f, 0.95f);
+                    else view.Background.color = new Color(0.72f, 0.75f, 0.79f);
+
+                    if (isSelected) view.Background.color = new Color(1f, 0.9f, 0.32f);
+                    else if (reachable) view.Background.color = new Color(0.5f, 0.87f, 0.55f);
+                }
                 view.Button.interactable = previousInput && cell.CanOperate && !cell.HasObstacle;
                 view.Piece.gameObject.SetActive(cell.HasPiece);
-                view.Label.text = cell.HasObstacle ? "×" : "";
-                view.Label.color = Color.white;
+                if (cell.HasObstacle)
+                {
+                    // 障碍格：显示 ×，颜色按"是谁留下的"来定
+                    view.Label.text = "×";
+                    view.Label.color = _retainedAt.TryGetValue(view.Cell, out SpecialElement crossElement)
+                        ? CrossColor(crossElement)
+                        : new Color(0.08f, 0.09f, 0.12f);
+                }
+                else
+                {
+                    view.Label.text = "";
+                    view.Label.color = Color.white;
+                }
+
                 if (!cell.HasPiece) continue;
-                Sprite sprite = ElementSprite(cell.Piece.Element);
+
+                Sprite normalArt = ElementSprite(cell.Piece.Element);
+                Sprite specialArt = special ? SpecialSprite(cell.Piece.Element) : null;
+
+                // 特殊棋子优先用专用图，没配才退回普通图
+                Sprite sprite = special ? Pick(specialArt, normalArt) : normalArt;
+
                 view.Piece.sprite = sprite;
                 view.Piece.preserveAspect = sprite != null;
                 view.Piece.color = sprite != null ? Color.white : ElementColor(cell.Piece.Element);
-                view.Label.text = sprite != null ? (special ? "特" : "") : ElementName(cell.Piece.Element) + (special ? "·特" : "");
+
+                // 文字只在"没有专用图"的时候兜底
+                if (sprite == null)
+                    view.Label.text = ElementName(cell.Piece.Element) + (special ? "·特" : "");
+                else if (special && specialArt == null)
+                    view.Label.text = "特";      // 用的是普通图，靠这个字区分
+                else
+                    view.Label.text = "";        // 有专用图了，不再写字
+
                 view.Label.color = new Color(0.08f, 0.09f, 0.12f);
             }
         }
@@ -560,7 +779,16 @@ namespace Game.Board
                     label.alignment = TextAlignmentOptions.Center;
                     label.fontStyle = FontStyles.Bold;
                     label.raycastTarget = false;
-                    views.Add(coord, new CellView { Root = root, Background = background, Button = button, Piece = piece, Label = label });
+                    views.Add(coord, new CellView
+                    {
+                        Root = root,
+                        Background = background,
+                        Button = button,
+                        Piece = piece,
+                        Label = label,
+                        Odd = ((x + y) & 1) == 1,
+                        Cell = new Vector2Int(x, y)          
+                    });
                 }
             FitGrid();
         }
@@ -603,6 +831,54 @@ namespace Game.Board
                 case ElementType.ground: return groundSprite;
                 default: return null;
             }
+        }
+
+        private Sprite SpecialSprite(ElementType element)
+        {
+            switch (element)
+            {
+                case ElementType.Fire: return fireSpecialSprite;
+                case ElementType.Water: return waterSpecialSprite;
+                case ElementType.Wind: return windSpecialSprite;
+                case ElementType.ground: return groundSpecialSprite;
+                default: return null;
+            }
+        }
+
+        // ── 合成音效 ──
+        private void PlaySynthesisSound(BoardTurnResult result)
+        {
+            if (result == null || result.SpecialPiece == null) return;
+
+            AudioClip clip = SynthesisClip(result.SpecialPiece.Element);
+            if (clip == null) return;
+
+            EnsureSfx();
+            _sfx.PlayOneShot(clip, synthesisVolume);
+        }
+
+        private AudioClip SynthesisClip(ElementType element)
+        {
+            switch (element)
+            {
+                case ElementType.Fire: return fireSynthesisClip;
+                case ElementType.Water: return waterSynthesisClip;
+                case ElementType.Wind: return windSynthesisClip;
+                case ElementType.ground: return groundSynthesisClip;
+                default: return null;
+            }
+        }
+
+        private void EnsureSfx()
+        {
+            if (_sfx != null) return;
+
+            _sfx = GetComponent<AudioSource>();
+            if (_sfx == null) _sfx = gameObject.AddComponent<AudioSource>();
+
+            _sfx.playOnAwake = false;
+            _sfx.loop = false;
+            _sfx.spatialBlend = 0f;        // 0 = 2D，不受距离影响
         }
 
         private static string ElementName(ElementType element)

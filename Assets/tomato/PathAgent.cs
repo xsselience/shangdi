@@ -158,13 +158,22 @@ public class PathAgent : MonoBehaviour
         OnPathChanged?.Invoke();
         return true;
     }
+    /// <summary>标记为已退场，但不隐藏物体。给死亡动画留出播放时间。</summary>
+    public void SetInactive()
+    {
+        IsActive = false;
+        _path.Clear();
+        intent.locked = true;
+
+        OnPathChanged?.Invoke();
+    }
 
     // ── 退场：整个 GameObject 设为不活动 ──
     // UnitView 的 Visual、PathRenderer 的 Dot 都是这个物体的子物体，
     // 所以它们会一起消失，不需要另外通知
     public void Despawn()
     {
-        if (!IsActive) return;
+        if (!gameObject.activeSelf) return;      // 用"物体还在不在"来判断，而不是 IsActive
 
         IsActive = false;
         _path.Clear();

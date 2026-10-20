@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Events;
 using Game.Board;
 using Assets.Scripts.UI;
 using UnityEngine.SceneManagement;
@@ -47,6 +48,25 @@ public class StartButtonUI : MonoBehaviour
 
     [Tooltip("点击结束后要去的场景索引。0 = 开始场景")]
     [SerializeField] private int endingSceneIndex = 0;
+
+    [Header("开始按钮提示")]
+    [Tooltip("点了开始之后要隐藏并停掉的那个提示动画")]
+    [SerializeField] private StartHintAnimator startHint;
+
+    [Header("缩放过渡")]
+    [Tooltip("棋盘放大/缩小的过渡时长（秒）。0 = 瞬间切换")]
+    [SerializeField] private float boardScaleDuration = 0.35f;
+
+    [Tooltip("过渡曲线")]
+    [SerializeField]
+    private AnimationCurve boardScaleEase =
+        AnimationCurve.EaseInOut(0f, 0f, 1f, 1f);
+
+    [Header("输入锁")]
+    [Tooltip("勾上时，FocusFirstBoard / FocusSecondBoard 会被忽略。对话期间用")]
+    public bool blockBoardFocus;
+    Coroutine _scaleRoutine;
+
 
     public Stage CurrentStage { get { return stage; } }
     public int CurrentChapter { get { return currentChapter; } }
@@ -194,6 +214,7 @@ public class StartButtonUI : MonoBehaviour
         switch (state)
         {
             case GameState.BeforePlaying:
+                if (startHint != null) startHint.Hide();
                 GameEventCenter.Instance.RequestStartGame();
                 break;
             case GameState.Playing:
@@ -227,35 +248,112 @@ public class StartButtonUI : MonoBehaviour
     // ─────────────────────────────────────────────
     private void ApplyBoardScales(bool secondBoardActive)
     {
-        mainScreen.localScale = secondBoardActive ? Vector3.one * 0.9f : Vector3.one;
-        subScreen.localScale = secondBoardActive ? Vector3.one * 1.1f : Vector3.one;
+        // 目标缩放
+        Vector3 targetMain = secondBoardActive ? Vector3.one * 0.9f : Vector3.one;
+        Vector3 targetSub = secondBoardActive ? Vector3.one * 1.1f : Vector3.one;
+        Vector3 targetFirst = Vector3.one *
+            (secondBoardActive ? firstScaleOnSecondBoard : firstScaleOnFirstBoard);
+        Vector3 targetSecond = Vector3.one *
+            (secondBoardActive ? secondScaleOnSecondBoard : secondScaleOnFirstBoard);
 
-        if (firstBoard != null)
-            firstBoard.localScale = Vector3.one *
-                (secondBoardActive ? firstScaleOnSecondBoard : firstScaleOnFirstBoard);
+        if (_scaleRoutine != null)
+        {
+            StopCoroutine(_scaleRoutine);
+            _scaleRoutine = null;
+        }
 
-        if (secondBoard != null)
-            secondBoard.localScale = Vector3.one *
-                (secondBoardActive ? secondScaleOnSecondBoard : secondScaleOnFirstBoard);
+        if (boardScaleDuration <= 0f || !isActiveAndEnabled)
+        {
+            SetScales(targetMain, targetSub, targetFirst, targetSecond);
+            if (battleFlow != null) battleFlow.SnapAllViews();
+            return;
+        }
+
+        _scaleRoutine = StartCoroutine(ScaleRoutine(targetMain, targetSub, targetFirst, targetSecond));
+    }
+
+    private void SetScales(Vector3 main, Vector3 sub, Vector3 first, Vector3 second)
+    {
+        if (mainScreen != null) mainScreen.localScale = main;
+        if (subScreen != null) subScreen.localScale = sub;
+        if (firstBoard != null) firstBoard.localScale = first;
+        if (secondBoard != null) secondBoard.localScale = second;
+    }
+
+    private System.Collections.IEnumerator ScaleRoutine(
+        Vector3 main, Vector3 sub, Vector3 first, Vector3 second)
+    {
+        Vector3 fromMain = mainScreen != null ? mainScreen.localScale : Vector3.one;
+        Vector3 fromSub = subScreen != null ? subScreen.localScale : Vector3.one;
+        Vector3 fromFirst = firstBoard != null ? firstBoard.localScale : Vector3.one;
+        Vector3 fromSecond = secondBoard != null ? secondBoard.localScale : Vector3.one;
+
+        float duration = Mathf.Max(0.01f, boardScaleDuration);
+        float t = 0f;
+
+        while (t < 1f)
+        {
+            // 用 unscaledDeltaTime，暂停时也能正常播完
+            t += Time.unscaledDeltaTime / duration;
+
+            float k = (boardScaleEase != null && boardScaleEase.length > 0)
+                ? boardScaleEase.Evaluate(Mathf.Clamp01(t))
+                : Mathf.SmoothStep(0f, 1f, Mathf.Clamp01(t));
+
+            SetScales(Vector3.LerpUnclamped(fromMain, main, k),
+                      Vector3.LerpUnclamped(fromSub, sub, k),
+                      Vector3.LerpUnclamped(fromFirst, first, k),
+                      Vector3.LerpUnclamped(fromSecond, second, k));
+
+            // 棋盘在变，棋子每一帧都要重新贴住格子
+            if (battleFlow != null) battleFlow.SnapAllViews();
+
+            yield return null;
+        }
+
+        SetScales(main, sub, first, second);
+        if (battleFlow != null) battleFlow.SnapAllViews();
+
+        _scaleRoutine = null;
     }
     // ─────────────────────────────────────────────
     //  手动切换聚焦（点棋盘触发）
     // ─────────────────────────────────────────────
     /// <summary>点上方棋盘 / 第一棋盘时调这个</summary>
+    
+
+    // ── 玩家点击用的入口：受 blockBoardFocus 限制 ──
     [ContextMenu("聚焦第一棋盘")]
     public void FocusFirstBoard()
     {
-        Debug.Log("StartButtonUI: 手动聚焦第一棋盘", this);
-        ApplyBoardScales(false);      // false = 第一棋盘大、第二棋盘小
+        Debug.Log($"StartButtonUI: FocusFirstBoard 被调用，blockBoardFocus={blockBoardFocus}", this);
+        if (blockBoardFocus)
+        {
+            Debug.Log("StartButtonUI: 对话进行中，忽略聚焦第一棋盘", this);
+            return;
+        }
+
+        ForceFocusFirstBoard();
     }
 
-    /// <summary>点下方棋盘 / 第二棋盘时调这个</summary>
     [ContextMenu("聚焦第二棋盘")]
     public void FocusSecondBoard()
     {
-        Debug.Log("StartButtonUI: 手动聚焦第二棋盘", this);
-        ApplyBoardScales(true);       // true = 第二棋盘大、第一棋盘小
+        if (blockBoardFocus)
+        {
+            Debug.Log("StartButtonUI: 对话进行中，忽略聚焦第二棋盘", this);
+            return;
+        }
+
+        ForceFocusSecondBoard();
     }
+
+    // ── 脚本用的入口：无视输入锁 ──
+    /// <summary>脚本专用，不受 blockBoardFocus 限制</summary>
+    public void ForceFocusFirstBoard() => ApplyBoardScales(false);
+
+    /// <summary>脚本专用，不受 blockBoardFocus 限制</summary>
+    public void ForceFocusSecondBoard() => ApplyBoardScales(true);
 
     // ═══════════════════════════════════════════════════════
     //  ▼▼▼  留空：每一章开始时要做的事  ▼▼▼

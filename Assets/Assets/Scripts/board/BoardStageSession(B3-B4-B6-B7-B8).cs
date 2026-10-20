@@ -104,16 +104,27 @@ namespace Game.Board
                     }
 
                     // 一个都没补上才算失败（整步回滚，不扣步数）
-                    if (spawned == 0)
+                    if (SynthesisResolver.TryResolveSynthesis(Board, to, out five, out specialCoord))
                     {
-                        Board.RestorePieceSnapshot(before);
-                        result = Failure(from, to, BoardTurnFailure.SpawnFailed, lastSpawn);
-                        return false;
+                        foreach (GridCoord coord in five)
+                            removed.Add(new PlacedPieceSnapshot(coord, Board.RemovePieceAt(coord)));
+                        special = new PlacedPieceSnapshot(specialCoord,
+                            Board.CreatePieceAt(specialCoord, moved.Element, PieceKind.Special));
+
+                        // ★ 合成奖励：这一步不扣，还多给一步
+                        RemainingSteps++;
+                    }
+                    else
+                    {
+                        // 补棋那两个的循环...（原样不动）
+                        spawn = lastSpawn;
+
+                        // ★ 挪进来：只有普通移动才扣步
+                        RemainingSteps--;
                     }
 
-                    spawn = lastSpawn;
+                    UpdateEnding(false);
                 }
-                RemainingSteps--;
                 UpdateEnding(false);
                 result = new BoardTurnResult(true, BoardTurnFailure.None, from, to, moved,
                     removed, special, spawn, RemainingSteps, EndReason);

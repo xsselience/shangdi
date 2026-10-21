@@ -88,7 +88,6 @@ public class ScoreBoard : MonoBehaviour
         if (detail.Length == 0) detail.Append("（没找到任何 A）");
 
         if (logChanges)
-            Debug.Log($"ScoreBoard: 计分明细 = {detail} = {gained}（有效 {alive} 个）", this);
 
         AddScore(gained, $"{alive} 个 A 的剩余血量");
     }

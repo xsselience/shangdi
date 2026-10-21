@@ -50,6 +50,28 @@ public class PathAgent : MonoBehaviour
     [Tooltip("每次轮到它行动时前进几格")]
     public double stepsPerTick = 1;
 
+    [Header("驻守")]
+    [Tooltip("到达目标后要停留多少回合才算完成。0 = 到达即完成")]
+    public int holdRounds;
+
+    [Header("巡逻")]
+    [Tooltip("勾上后：在起点和目标之间来回走，不参与结算")]
+    public bool patrol;
+
+    public Vector2Int PatrolA { get; private set; }
+    public Vector2Int PatrolB { get; private set; }
+
+    /// <summary>已经在目标格上待了几回合</summary>
+    public int HoldCount { get; private set; }
+
+    public void AddHold() { HoldCount++; }
+    public void ResetHold() { HoldCount = 0; }
+
+    [Header("调试")]
+    [SerializeField] int debugElevation;      // ← 加这一行
+
+    // 在 Update 或者 TryStep 里同步一下
+    void SyncDebug() { debugElevation = Elevation; }
 
     // 被 Despawn() 之后为 false。显示层靠它决定要不要藏起来
     public bool IsActive { get; private set; } = true;
@@ -121,6 +143,22 @@ public class PathAgent : MonoBehaviour
 
         intent.target = goal;
         return ComputePath();
+    }
+
+    /// <summary>设置两个往返端点。A = 起点，B = 目标</summary>
+    public void SetPatrolPoints(Vector2Int a, Vector2Int b)
+    {
+        PatrolA = a;
+        PatrolB = b;
+    }
+
+    /// <summary>到达一端 → 掉头去另一端</summary>
+    public void SwapPatrolTarget()
+    {
+        if (PatrolA == PatrolB) return;                 // 两个点相同，原地不动
+
+        Vector2Int next = (GridPos == PatrolB) ? PatrolA : PatrolB;
+        RetargetTo(next);
     }
 
     /// <summary>真正的算路。返回是否真的到达了目标格。</summary>
@@ -197,6 +235,7 @@ public class PathAgent : MonoBehaviour
         gameObject.SetActive(true);     // 先激活，让显示层重新订阅
         OnReset?.Invoke();              // 再通知，UnitView 会直接归位
         OnPathChanged?.Invoke();
+        ResetHold();
     }
 
     public void SetStartPos(Vector2Int c)

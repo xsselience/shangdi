@@ -299,12 +299,16 @@ MonoBehaviour:
     locked: 0
   priority: 1
   gridPos: {x: 0, y: 9}
-  stepsPerTick: 0.5
+  stepsPerTick: 1
+  holdRounds: 0
+  patrol: 0
+  debugElevation: 0
   _elementReaction:
     waterHealAmount: 25
     earthBlocksPath: 1
     windLiftHeight: 1
     fireDamage: 25
+    logElevation: 0
 --- !u!114 &140942131
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -449,12 +453,16 @@ MonoBehaviour:
     locked: 0
   priority: 0
   gridPos: {x: 9, y: 9}
-  stepsPerTick: 0.5
+  stepsPerTick: 2
+  holdRounds: 0
+  patrol: 0
+  debugElevation: 0
   _elementReaction:
     waterHealAmount: 25
     earthBlocksPath: 1
     windLiftHeight: 1
     fireDamage: 25
+    logElevation: 0
 --- !u!114 &164705032
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1029,29 +1037,104 @@ MonoBehaviour:
   root: {fileID: 1259800462}
   bodyText: {fileID: 826053148}
   continueHint: {fileID: 0}
-  steps:
-  - text: "\u6B22\u8FCE\u6765\u5230\u75AF\u72C2\u52A8\u7269\u5927\u5954\u8D70"
-    focus: 0
-    focusDelay: 0
-    autoAdvanceDelay: 10
-  - text: "\u8FD9\u662F\u52A8\u7269\u68CB\u76D8\u4F60\u9700\u8981\u5E2E\u52A9\u52A8\u7269\u6210\u529F\u62B5\u8FBE\u6816\u606F\u5730\u8EB2\u907F\u5077\u730E\u8005\u7684\u8FFD\u730E"
-    focus: 2
-    focusDelay: 0
-    autoAdvanceDelay: 10
-  - text: "\u8FD9\u662F\u5143\u7D20\u68CB\u76D8\u4F60\u53EF\u4EE5\u5728\u8FD9\u91CC\u5408\u6210\u5143\u7D20\u6765\u5E2E\u52A9\u52A8\u7269"
-    focus: 1
-    focusDelay: 0
-    autoAdvanceDelay: 10
-  - text: "\u5C31\u662F\u5982\u6B64\u795D\u4F60\u6E38\u620F\u6109\u5FEB\uFF01"
-    focus: 1
-    focusDelay: 0
-    autoAdvanceDelay: 10
   startButtonUI: {fileID: 1083942854}
-  playOnStart: 1
   inputCooldown: 0.2
-  onFinished:
-    m_PersistentCalls:
-      m_Calls: []
+  playOpeningOnStart: 1
+  opening:
+    name: "\u5BF9\u8BDD"
+    steps:
+    - text: "\u6B22\u8FCE\u6765\u5230\u52A8\u7269\u5927\u5954\u8D70"
+      focus: 0
+      focusDelay: 0
+      autoAdvanceDelay: 0
+    - text: "\u8FD9\u91CC\u662F\u5143\u7D20\u68CB\u76D8\u4F60\u9700\u8981\u5728\u8FD9\u5408\u6210\u5143\u7D20\u5E2E\u52A9\u52A8\u7269"
+      focus: 1
+      focusDelay: 0
+      autoAdvanceDelay: 0
+    - text: "\u8FD9\u91CC\u662F\u52A8\u7269\u68CB\u76D8\u4F60\u7684\u76EE\u7684\u662F\u5E2E\u52A9\u52A8\u7269\u5B8C\u6210\u76EE\u6807"
+      focus: 2
+      focusDelay: 0
+      autoAdvanceDelay: 0
+    - text: "\u5C31\u662F\u5982\u6B64\u795D\u4F60\u6E38\u620F\u6109\u5FEB"
+      focus: 1
+      focusDelay: 0
+      autoAdvanceDelay: 0
+    revealOnLastStep: {fileID: 0}
+    onFinished:
+      m_PersistentCalls:
+        m_Calls: []
+  ending:
+    name: "\u5BF9\u8BDD"
+    steps:
+    - text: "\u9636\u6BB5\u6027\u6E38\u620F\u5B8C\u6210\u4E86\u8BF7\u81EA\u7531\u7545\u73A9\u5427"
+      focus: 1
+      focusDelay: 0
+      autoAdvanceDelay: 0
+    revealOnLastStep: {fileID: 1132070257}
+    onFinished:
+      m_PersistentCalls:
+        m_Calls: []
+  stageEndDialogues:
+  - name: 
+    steps:
+    - text: "\u6216\u8BB8\u6211\u4EEC\u5E94\u8BE5\u591A\u4F7F\u7528\u571F\u5143\u7D20\u6765\u4FDD\u62A4\u4ED6\u4EEC\uFF1F"
+      focus: 1
+      focusDelay: 0
+      autoAdvanceDelay: 0
+    revealOnLastStep: {fileID: 0}
+    onFinished:
+      m_PersistentCalls:
+        m_Calls: []
+  - name: 
+    steps:
+    - text: "\u4F60\u8BF4\u8FD9\u4E9B\u52A8\u7269\u7A76\u7ADF\u60F3\u53BB\u54EA"
+      focus: 1
+      focusDelay: 0
+      autoAdvanceDelay: 0
+    revealOnLastStep: {fileID: 0}
+    onFinished:
+      m_PersistentCalls:
+        m_Calls: []
+  - name: 
+    steps:
+    - text: "\u98CE\uFF01\u53EF\u4EE5\u5E26\u6211\u4EEC\u8DE8\u8D8A\u5C71\u8109\uFF01"
+      focus: 1
+      focusDelay: 0
+      autoAdvanceDelay: 0
+    revealOnLastStep: {fileID: 0}
+    onFinished:
+      m_PersistentCalls:
+        m_Calls: []
+  - name: 
+    steps:
+    - text: "\u98CE\uFF01\u53EF\u4EE5\u5E26\u6211\u4EEC\u8DE8\u8D8A\u5C71\u8109\uFF01"
+      focus: 1
+      focusDelay: 0
+      autoAdvanceDelay: 0
+    revealOnLastStep: {fileID: 0}
+    onFinished:
+      m_PersistentCalls:
+        m_Calls: []
+  - name: 
+    steps:
+    - text: "\u98CE\uFF01\u53EF\u4EE5\u5E26\u6211\u4EEC\u8DE8\u8D8A\u5C71\u8109\uFF01"
+      focus: 1
+      focusDelay: 0
+      autoAdvanceDelay: 0
+    revealOnLastStep: {fileID: 0}
+    onFinished:
+      m_PersistentCalls:
+        m_Calls: []
+  - name: 
+    steps:
+    - text: "\u98CE\uFF01\u53EF\u4EE5\u5E26\u6211\u4EEC\u8DE8\u8D8A\u5C71\u8109\uFF01"
+      focus: 1
+      focusDelay: 0
+      autoAdvanceDelay: 0
+    revealOnLastStep: {fileID: 0}
+    onFinished:
+      m_PersistentCalls:
+        m_Calls: []
 --- !u!1 &671310696
 GameObject:
   m_ObjectHideFlags: 0
@@ -1091,12 +1174,16 @@ MonoBehaviour:
     locked: 0
   priority: 0
   gridPos: {x: 9, y: 9}
-  stepsPerTick: 0.5
+  stepsPerTick: 2
+  holdRounds: 0
+  patrol: 0
+  debugElevation: 0
   _elementReaction:
     waterHealAmount: 25
     earthBlocksPath: 1
     windLiftHeight: 1
     fireDamage: 25
+    logElevation: 0
 --- !u!114 &671310698
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1230,12 +1317,16 @@ MonoBehaviour:
     locked: 0
   priority: 0
   gridPos: {x: 9, y: 9}
-  stepsPerTick: 0.5
+  stepsPerTick: 2
+  holdRounds: 0
+  patrol: 0
+  debugElevation: 0
   _elementReaction:
     waterHealAmount: 25
     earthBlocksPath: 1
     windLiftHeight: 1
     fireDamage: 25
+    logElevation: 0
 --- !u!114 &708929098
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1462,8 +1553,8 @@ MonoBehaviour:
       m_Calls: []
   m_text: 
   m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: 449c1314ef3c51a49a78cf42cb7a26fd, type: 2}
-  m_sharedMaterial: {fileID: -3254112966468749255, guid: 449c1314ef3c51a49a78cf42cb7a26fd, type: 2}
+  m_fontAsset: {fileID: 11400000, guid: cb2a98d39c337be469de9d216f2fbc21, type: 2}
+  m_sharedMaterial: {fileID: -8392586796971643711, guid: cb2a98d39c337be469de9d216f2fbc21, type: 2}
   m_fontSharedMaterials: []
   m_fontMaterial: {fileID: 0}
   m_fontMaterials: []
@@ -1487,8 +1578,8 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 42
-  m_fontSizeBase: 42
+  m_fontSize: 32
+  m_fontSizeBase: 32
   m_fontWeight: 400
   m_enableAutoSizing: 0
   m_fontSizeMin: 18
@@ -1715,6 +1806,140 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a6497f636a8041fba074d32fc58d5e9d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!1 &890589495
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 890589496}
+  - component: {fileID: 890589498}
+  - component: {fileID: 890589497}
+  m_Layer: 0
+  m_Name: Text (TMP)
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!224 &890589496
+RectTransform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 890589495}
+  m_LocalRotation: {x: -0, y: -0, z: -0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 2.4, y: 2.4, z: 2.4}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 1269053875}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+  m_AnchorMin: {x: 0.5, y: 0.5}
+  m_AnchorMax: {x: 0.5, y: 0.5}
+  m_AnchoredPosition: {x: 361.76825, y: 38.320023}
+  m_SizeDelta: {x: 65.88, y: 23.426}
+  m_Pivot: {x: 0.5, y: 0.5}
+--- !u!114 &890589497
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 890589495}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Material: {fileID: 0}
+  m_Color: {r: 1, g: 1, b: 1, a: 1}
+  m_RaycastTarget: 1
+  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
+  m_Maskable: 1
+  m_OnCullStateChanged:
+    m_PersistentCalls:
+      m_Calls: []
+  m_text: 
+  m_isRightToLeft: 0
+  m_fontAsset: {fileID: 11400000, guid: cb2a98d39c337be469de9d216f2fbc21, type: 2}
+  m_sharedMaterial: {fileID: -8392586796971643711, guid: cb2a98d39c337be469de9d216f2fbc21, type: 2}
+  m_fontSharedMaterials: []
+  m_fontMaterial: {fileID: 0}
+  m_fontMaterials: []
+  m_fontColor32:
+    serializedVersion: 2
+    rgba: 4278190080
+  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
+  m_enableVertexGradient: 0
+  m_colorMode: 3
+  m_fontColorGradient:
+    topLeft: {r: 1, g: 1, b: 1, a: 1}
+    topRight: {r: 1, g: 1, b: 1, a: 1}
+    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
+    bottomRight: {r: 1, g: 1, b: 1, a: 1}
+  m_fontColorGradientPreset: {fileID: 0}
+  m_spriteAsset: {fileID: 0}
+  m_tintAllSprites: 0
+  m_StyleSheet: {fileID: 0}
+  m_TextStyleHashCode: -1183493901
+  m_overrideHtmlColors: 0
+  m_faceColor:
+    serializedVersion: 2
+    rgba: 4294967295
+  m_fontSize: 18
+  m_fontSizeBase: 18
+  m_fontWeight: 400
+  m_enableAutoSizing: 0
+  m_fontSizeMin: 18
+  m_fontSizeMax: 72
+  m_fontStyle: 0
+  m_HorizontalAlignment: 1
+  m_VerticalAlignment: 512
+  m_textAlignment: 65535
+  m_characterSpacing: 0
+  m_wordSpacing: 0
+  m_lineSpacing: 0
+  m_lineSpacingMax: 0
+  m_paragraphSpacing: 0
+  m_charWidthMaxAdj: 0
+  m_enableWordWrapping: 1
+  m_wordWrappingRatios: 0.4
+  m_overflowMode: 0
+  m_linkedTextComponent: {fileID: 0}
+  parentLinkedComponent: {fileID: 0}
+  m_enableKerning: 1
+  m_enableExtraPadding: 0
+  checkPaddingRequired: 0
+  m_isRichText: 1
+  m_parseCtrlCharacters: 1
+  m_isOrthographic: 1
+  m_isCullingEnabled: 0
+  m_horizontalMapping: 0
+  m_verticalMapping: 0
+  m_uvLineOffset: 0
+  m_geometrySortingOrder: 0
+  m_IsTextObjectScaleStatic: 0
+  m_VertexBufferAutoSizeReduction: 0
+  m_useMaxVisibleDescender: 1
+  m_pageToDisplay: 1
+  m_margin: {x: 0, y: 0, z: 0, w: 0}
+  m_isUsingLegacyAnimationComponent: 0
+  m_isVolumetricText: 0
+  m_hasFontAssetChanged: 0
+  m_baseMaterial: {fileID: 0}
+  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!222 &890589498
+CanvasRenderer:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 890589495}
+  m_CullTransparentMesh: 1
 --- !u!1 &917312029
 GameObject:
   m_ObjectHideFlags: 0
@@ -1788,12 +2013,16 @@ MonoBehaviour:
     locked: 0
   priority: 0
   gridPos: {x: 9, y: 9}
-  stepsPerTick: 0.5
+  stepsPerTick: 2
+  holdRounds: 0
+  patrol: 0
+  debugElevation: 0
   _elementReaction:
     waterHealAmount: 25
     earthBlocksPath: 1
     windLiftHeight: 1
     fireDamage: 25
+    logElevation: 0
 --- !u!114 &925701439
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2376,6 +2605,7 @@ GameObject:
   - component: {fileID: 1132070261}
   - component: {fileID: 1132070260}
   - component: {fileID: 1132070259}
+  - component: {fileID: 1132070262}
   m_Layer: 5
   m_Name: end
   m_TagString: Untagged
@@ -2447,9 +2677,9 @@ MonoBehaviour:
   m_OnClick:
     m_PersistentCalls:
       m_Calls:
-      - m_Target: {fileID: 1083942854}
-        m_TargetAssemblyTypeName: StartButtonUI, Assembly-CSharp
-        m_MethodName: OnClickEndingButton
+      - m_Target: {fileID: 1132070262}
+        m_TargetAssemblyTypeName: EndlessStageButton, Assembly-CSharp
+        m_MethodName: OnClick
         m_Mode: 1
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
@@ -2497,216 +2727,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1132070257}
   m_CullTransparentMesh: 1
---- !u!1 &1213222708
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1213222709}
-  - component: {fileID: 1213222711}
-  - component: {fileID: 1213222710}
-  m_Layer: 0
-  m_Name: Text (TMP)
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &1213222709
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1213222708}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children: []
-  m_Father: {fileID: 1235938741}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 0, y: 0}
-  m_SizeDelta: {x: 200, y: 50}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1213222710
+--- !u!114 &1132070262
 MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1213222708}
+  m_GameObject: {fileID: 1132070257}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: f4688fdb7df04437aeb418b961361dc5, type: 3}
+  m_Script: {fileID: 11500000, guid: 0d4ad9ba5c281d843a60b4662124c0d7, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_text: "\u6211\u662F\u7F57\u5FB7\u68EE"
-  m_isRightToLeft: 0
-  m_fontAsset: {fileID: 11400000, guid: cb2a98d39c337be469de9d216f2fbc21, type: 2}
-  m_sharedMaterial: {fileID: -8392586796971643711, guid: cb2a98d39c337be469de9d216f2fbc21, type: 2}
-  m_fontSharedMaterials: []
-  m_fontMaterial: {fileID: 0}
-  m_fontMaterials: []
-  m_fontColor32:
-    serializedVersion: 2
-    rgba: 4278190080
-  m_fontColor: {r: 0, g: 0, b: 0, a: 1}
-  m_enableVertexGradient: 0
-  m_colorMode: 3
-  m_fontColorGradient:
-    topLeft: {r: 1, g: 1, b: 1, a: 1}
-    topRight: {r: 1, g: 1, b: 1, a: 1}
-    bottomLeft: {r: 1, g: 1, b: 1, a: 1}
-    bottomRight: {r: 1, g: 1, b: 1, a: 1}
-  m_fontColorGradientPreset: {fileID: 0}
-  m_spriteAsset: {fileID: 0}
-  m_tintAllSprites: 0
-  m_StyleSheet: {fileID: 0}
-  m_TextStyleHashCode: -1183493901
-  m_overrideHtmlColors: 0
-  m_faceColor:
-    serializedVersion: 2
-    rgba: 4294967295
-  m_fontSize: 24
-  m_fontSizeBase: 24
-  m_fontWeight: 400
-  m_enableAutoSizing: 0
-  m_fontSizeMin: 18
-  m_fontSizeMax: 72
-  m_fontStyle: 0
-  m_HorizontalAlignment: 2
-  m_VerticalAlignment: 512
-  m_textAlignment: 65535
-  m_characterSpacing: 0
-  m_wordSpacing: 0
-  m_lineSpacing: 0
-  m_lineSpacingMax: 0
-  m_paragraphSpacing: 0
-  m_charWidthMaxAdj: 0
-  m_enableWordWrapping: 1
-  m_wordWrappingRatios: 0.4
-  m_overflowMode: 0
-  m_linkedTextComponent: {fileID: 0}
-  parentLinkedComponent: {fileID: 0}
-  m_enableKerning: 1
-  m_enableExtraPadding: 0
-  checkPaddingRequired: 0
-  m_isRichText: 1
-  m_parseCtrlCharacters: 1
-  m_isOrthographic: 1
-  m_isCullingEnabled: 0
-  m_horizontalMapping: 0
-  m_verticalMapping: 0
-  m_uvLineOffset: 0
-  m_geometrySortingOrder: 0
-  m_IsTextObjectScaleStatic: 0
-  m_VertexBufferAutoSizeReduction: 0
-  m_useMaxVisibleDescender: 1
-  m_pageToDisplay: 1
-  m_margin: {x: 0, y: 0, z: 0, w: 0}
-  m_isUsingLegacyAnimationComponent: 0
-  m_isVolumetricText: 0
-  m_hasFontAssetChanged: 0
-  m_baseMaterial: {fileID: 0}
-  m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
---- !u!222 &1213222711
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1213222708}
-  m_CullTransparentMesh: 1
---- !u!1 &1235938740
-GameObject:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  serializedVersion: 6
-  m_Component:
-  - component: {fileID: 1235938741}
-  - component: {fileID: 1235938743}
-  - component: {fileID: 1235938742}
-  m_Layer: 0
-  m_Name: Image
-  m_TagString: Untagged
-  m_Icon: {fileID: 0}
-  m_NavMeshLayer: 0
-  m_StaticEditorFlags: 0
-  m_IsActive: 1
---- !u!224 &1235938741
-RectTransform:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1235938740}
-  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 0, z: 0}
-  m_LocalScale: {x: 1, y: 1, z: 1}
-  m_ConstrainProportionsScale: 0
-  m_Children:
-  - {fileID: 1213222709}
-  m_Father: {fileID: 1259800463}
-  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
-  m_AnchorMin: {x: 0.5, y: 0.5}
-  m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: -19, y: 197}
-  m_SizeDelta: {x: 104.983, y: 48.38}
-  m_Pivot: {x: 0.5, y: 0.5}
---- !u!114 &1235938742
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1235938740}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: fe87c0e1cc204ed48ad3b37840f39efc, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  m_Material: {fileID: 0}
-  m_Color: {r: 1, g: 1, b: 1, a: 1}
-  m_RaycastTarget: 1
-  m_RaycastPadding: {x: 0, y: 0, z: 0, w: 0}
-  m_Maskable: 1
-  m_OnCullStateChanged:
-    m_PersistentCalls:
-      m_Calls: []
-  m_Sprite: {fileID: 0}
-  m_Type: 0
-  m_PreserveAspect: 0
-  m_FillCenter: 1
-  m_FillMethod: 4
-  m_FillAmount: 1
-  m_FillClockwise: 1
-  m_FillOrigin: 0
-  m_UseSpriteMesh: 0
-  m_PixelsPerUnitMultiplier: 1
---- !u!222 &1235938743
-CanvasRenderer:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1235938740}
-  m_CullTransparentMesh: 1
+  boardBridge: {fileID: 1927041964}
+  worldMap: {fileID: 1785509705}
+  targetStage: -1
 --- !u!1 &1259800462
 GameObject:
   m_ObjectHideFlags: 0
@@ -2738,7 +2773,6 @@ RectTransform:
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 826053147}
-  - {fileID: 1235938741}
   m_Father: {fileID: 933702224}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -3215,12 +3249,16 @@ MonoBehaviour:
     locked: 0
   priority: 0
   gridPos: {x: 9, y: 9}
-  stepsPerTick: 0.5
+  stepsPerTick: 2
+  holdRounds: 0
+  patrol: 0
+  debugElevation: 0
   _elementReaction:
     waterHealAmount: 25
     earthBlocksPath: 1
     windLiftHeight: 1
     fireDamage: 25
+    logElevation: 0
 --- !u!114 &1439342468
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3448,12 +3486,16 @@ MonoBehaviour:
     locked: 0
   priority: 1
   gridPos: {x: 0, y: 9}
-  stepsPerTick: 0.5
+  stepsPerTick: 1
+  holdRounds: 0
+  patrol: 0
+  debugElevation: 0
   _elementReaction:
     waterHealAmount: 25
     earthBlocksPath: 1
     windLiftHeight: 1
     fireDamage: 25
+    logElevation: 0
 --- !u!1 &1534653730
 GameObject:
   m_ObjectHideFlags: 0
@@ -3754,12 +3796,16 @@ MonoBehaviour:
     locked: 0
   priority: 0
   gridPos: {x: 9, y: 9}
-  stepsPerTick: 0.5
+  stepsPerTick: 2
+  holdRounds: 0
+  patrol: 0
+  debugElevation: 0
   _elementReaction:
     waterHealAmount: 25
     earthBlocksPath: 1
     windLiftHeight: 1
     fireDamage: 25
+    logElevation: 0
 --- !u!114 &1725634015
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -3893,12 +3939,16 @@ MonoBehaviour:
     locked: 0
   priority: 1
   gridPos: {x: 0, y: 9}
-  stepsPerTick: 0.5
+  stepsPerTick: 1
+  holdRounds: 0
+  patrol: 0
+  debugElevation: 0
   _elementReaction:
     waterHealAmount: 25
     earthBlocksPath: 1
     windLiftHeight: 1
     fireDamage: 25
+    logElevation: 0
 --- !u!114 &1774882221
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -4061,7 +4111,7 @@ MonoBehaviour:
   wallSprite: {fileID: 21300000, guid: e5ce683c6e3e85144887dd4419185779, type: 3}
   forestSprite: {fileID: 21300000, guid: 32b10bc9417c95e45a0c9b67951e9f12, type: 3}
   desertSprite: {fileID: 21300000, guid: b62ef8e61bd7db149ae98188275bb18f, type: 3}
-  campSprite: {fileID: 21300000, guid: 0188b093fec7073489be48f8f626c4aa, type: 3}
+  campSprite: {fileID: 0}
   tintRealSprites: 0
   groundTint: {r: 1, g: 1, b: 1, a: 0.06}
   wallTint: {r: 1, g: 1, b: 1, a: 0.45}
@@ -4103,7 +4153,7 @@ MonoBehaviour:
   waterSprite: {fileID: 21300000, guid: bed663b86c7b4774684f930f27295e46, type: 3}
   windSprite: {fileID: 21300000, guid: c53ae2b08939b684ebb0c712a76090d8, type: 3}
   groundSprite: {fileID: 21300000, guid: b60e3f69065107d49b74c099edd82fee, type: 3}
-  ashSprite: {fileID: 0}
+  ashSprite: {fileID: 21300000, guid: 0188b093fec7073489be48f8f626c4aa, type: 3}
   waterShoreTopSprite: {fileID: 21300000, guid: 68f5c588dbf33f24aada101a0b7c415e, type: 3}
   waterShoreBottomSprite: {fileID: 21300000, guid: d5e172443d83a0545b186a901bcb01ad, type: 3}
   shoreHeightRatio: 0.35
@@ -4125,6 +4175,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1816539440}
   - component: {fileID: 1816539439}
+  - component: {fileID: 1816539441}
   m_Layer: 0
   m_Name: LevelManager
   m_TagString: Untagged
@@ -4160,6 +4211,21 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &1816539441
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1816539438}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 0f7dd0eb2cebb2a4e9c2af18e0643d0f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  battleFlow: {fileID: 1845164817}
+  text: {fileID: 890589497}
+  prefix: "\u56DE\u5408 "
 --- !u!1 &1845164816
 GameObject:
   m_ObjectHideFlags: 0
@@ -4193,10 +4259,10 @@ MonoBehaviour:
   map: {fileID: 1785509705}
   levels:
   - levelName: 1
-    goal: {x: 9, y: 0}
     playerUnits:
     - unit: {fileID: 1774882220}
-      cell: {x: 9, y: 9}
+      patrol: 0
+      cell: {x: 0, y: 0}
       useOwnGoal: 0
       ownGoal: {x: 0, y: 0}
       timing: 0
@@ -4205,9 +4271,11 @@ MonoBehaviour:
       maxHpOverride: 0
       attackPowerOverride: 0
       stepsPerTickOverride: 0
+      holdRounds: 0
     enemyUnits:
     - unit: {fileID: 2053665550}
-      cell: {x: 0, y: 0}
+      patrol: 0
+      cell: {x: 0, y: 9}
       useOwnGoal: 0
       ownGoal: {x: 0, y: 0}
       timing: 0
@@ -4216,258 +4284,180 @@ MonoBehaviour:
       maxHpOverride: 50
       attackPowerOverride: 50
       stepsPerTickOverride: 0
+      holdRounds: 0
+    goal: {x: 9, y: 0}
   - levelName: 2
-    goal: {x: 9, y: 0}
     playerUnits:
     - unit: {fileID: 1774882220}
-      cell: {x: 9, y: 9}
-      useOwnGoal: 0
-      ownGoal: {x: 0, y: 0}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 0
-      stepsPerTickOverride: 0
-    enemyUnits:
-    - unit: {fileID: 2053665550}
-      cell: {x: 0, y: 9}
-      useOwnGoal: 0
-      ownGoal: {x: 0, y: 0}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 100
-      stepsPerTickOverride: 0
-    - unit: {fileID: 925701438}
-      cell: {x: 0, y: 1}
-      useOwnGoal: 0
-      ownGoal: {x: 0, y: 0}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 100
-      stepsPerTickOverride: 0
-  - levelName: 3
-    goal: {x: 9, y: 0}
-    playerUnits:
-    - unit: {fileID: 1774882220}
-      cell: {x: 9, y: 9}
-      useOwnGoal: 0
-      ownGoal: {x: 0, y: 0}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 0
-      stepsPerTickOverride: 0
-    - unit: {fileID: 140942130}
-      cell: {x: 9, y: 9}
-      useOwnGoal: 1
-      ownGoal: {x: 0, y: 9}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 0
-      stepsPerTickOverride: 0
-    - unit: {fileID: 1500707975}
+      patrol: 0
       cell: {x: 9, y: 0}
-      useOwnGoal: 1
-      ownGoal: {x: 0, y: 9}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 0
-      stepsPerTickOverride: 0
-    enemyUnits:
-    - unit: {fileID: 2053665550}
-      cell: {x: 0, y: 9}
-      useOwnGoal: 0
-      ownGoal: {x: 0, y: 0}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 100
-      stepsPerTickOverride: 0
-    - unit: {fileID: 925701438}
-      cell: {x: 9, y: 0}
-      useOwnGoal: 1
-      ownGoal: {x: 0, y: 9}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 100
-      stepsPerTickOverride: 0
-  - levelName: 4
-    goal: {x: 9, y: 0}
-    playerUnits:
-    - unit: {fileID: 1774882220}
-      cell: {x: 9, y: 9}
-      useOwnGoal: 0
-      ownGoal: {x: 0, y: 0}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 0
-      stepsPerTickOverride: 0
-    - unit: {fileID: 140942130}
-      cell: {x: 9, y: 9}
-      useOwnGoal: 1
-      ownGoal: {x: 0, y: 9}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 0
-      stepsPerTickOverride: 0
-    - unit: {fileID: 1500707975}
-      cell: {x: 9, y: 0}
-      useOwnGoal: 1
-      ownGoal: {x: 0, y: 9}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 0
-      stepsPerTickOverride: 0
-    enemyUnits:
-    - unit: {fileID: 2053665550}
-      cell: {x: 0, y: 9}
-      useOwnGoal: 0
-      ownGoal: {x: 0, y: 0}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 100
-      stepsPerTickOverride: 0
-    - unit: {fileID: 925701438}
-      cell: {x: 9, y: 0}
-      useOwnGoal: 1
-      ownGoal: {x: 0, y: 9}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 100
-      stepsPerTickOverride: 0
-  - levelName: 5
-    goal: {x: 9, y: 0}
-    playerUnits:
-    - unit: {fileID: 1774882220}
-      cell: {x: 9, y: 9}
-      useOwnGoal: 0
-      ownGoal: {x: 0, y: 0}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 0
-      stepsPerTickOverride: 0
-    - unit: {fileID: 140942130}
-      cell: {x: 9, y: 9}
-      useOwnGoal: 0
-      ownGoal: {x: 0, y: 9}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 0
-      stepsPerTickOverride: 0
-    - unit: {fileID: 1500707975}
-      cell: {x: 9, y: 0}
-      useOwnGoal: 1
-      ownGoal: {x: 0, y: 9}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 0
-      stepsPerTickOverride: 0
-    enemyUnits:
-    - unit: {fileID: 2053665550}
-      cell: {x: 0, y: 9}
-      useOwnGoal: 1
-      ownGoal: {x: 0, y: 0}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 100
-      stepsPerTickOverride: 0
-    - unit: {fileID: 925701438}
-      cell: {x: 0, y: 0}
-      useOwnGoal: 1
-      ownGoal: {x: 0, y: 9}
-      timing: 0
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 100
-      stepsPerTickOverride: 0
-    - unit: {fileID: 164705031}
-      cell: {x: 9, y: 9}
-      useOwnGoal: 1
-      ownGoal: {x: 0, y: 0}
-      timing: 1
-      spawnAfterTicks: 5
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 100
-      stepsPerTickOverride: 0
-    - unit: {fileID: 671310697}
-      cell: {x: 9, y: 0}
-      useOwnGoal: 1
-      ownGoal: {x: 0, y: 9}
-      timing: 1
-      spawnAfterTicks: 5
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 100
-      stepsPerTickOverride: 0
-    - unit: {fileID: 1725634014}
-      cell: {x: 0, y: 9}
-      useOwnGoal: 1
-      ownGoal: {x: 9, y: 9}
-      timing: 1
-      spawnAfterTicks: 5
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 100
-      stepsPerTickOverride: 0
-    - unit: {fileID: 1439342467}
-      cell: {x: 0, y: 0}
-      useOwnGoal: 1
-      ownGoal: {x: 8, y: 9}
-      timing: 1
-      spawnAfterTicks: 8
-      spawnAfterPlayerSteps: 12
-      maxHpOverride: 0
-      attackPowerOverride: 100
-      stepsPerTickOverride: 0
-    - unit: {fileID: 708929097}
-      cell: {x: 0, y: 9}
       useOwnGoal: 1
       ownGoal: {x: 9, y: 0}
-      timing: 1
+      timing: 0
       spawnAfterTicks: 8
       spawnAfterPlayerSteps: 12
       maxHpOverride: 0
-      attackPowerOverride: 100
+      attackPowerOverride: 0
       stepsPerTickOverride: 0
+      holdRounds: 10
+    enemyUnits:
+    - unit: {fileID: 2053665550}
+      patrol: 0
+      cell: {x: 9, y: 9}
+      useOwnGoal: 0
+      ownGoal: {x: 0, y: 0}
+      timing: 0
+      spawnAfterTicks: 8
+      spawnAfterPlayerSteps: 12
+      maxHpOverride: 50
+      attackPowerOverride: 50
+      stepsPerTickOverride: 0
+      holdRounds: 0
+    goal: {x: 9, y: 0}
+  - levelName: 3
+    playerUnits:
+    - unit: {fileID: 140942130}
+      patrol: 0
+      cell: {x: 9, y: 9}
+      useOwnGoal: 1
+      ownGoal: {x: 0, y: 9}
+      timing: 0
+      spawnAfterTicks: 8
+      spawnAfterPlayerSteps: 12
+      maxHpOverride: 0
+      attackPowerOverride: 0
+      stepsPerTickOverride: 0
+      holdRounds: 0
+    enemyUnits:
+    - unit: {fileID: 2053665550}
+      patrol: 1
+      cell: {x: 0, y: 0}
+      useOwnGoal: 1
+      ownGoal: {x: 0, y: 9}
+      timing: 0
+      spawnAfterTicks: 8
+      spawnAfterPlayerSteps: 12
+      maxHpOverride: 50
+      attackPowerOverride: 50
+      stepsPerTickOverride: 0
+      holdRounds: 0
+    - unit: {fileID: 925701438}
+      patrol: 1
+      cell: {x: 0, y: 9}
+      useOwnGoal: 1
+      ownGoal: {x: 0, y: 0}
+      timing: 0
+      spawnAfterTicks: 8
+      spawnAfterPlayerSteps: 12
+      maxHpOverride: 50
+      attackPowerOverride: 50
+      stepsPerTickOverride: 0
+      holdRounds: 0
+    goal: {x: 9, y: 0}
+  - levelName: 4
+    playerUnits:
+    - unit: {fileID: 1774882220}
+      patrol: 0
+      cell: {x: 0, y: 0}
+      useOwnGoal: 1
+      ownGoal: {x: 9, y: 9}
+      timing: 0
+      spawnAfterTicks: 8
+      spawnAfterPlayerSteps: 12
+      maxHpOverride: 0
+      attackPowerOverride: 0
+      stepsPerTickOverride: 0
+      holdRounds: 0
+    enemyUnits: []
+    goal: {x: 9, y: 0}
+  - levelName: 5
+    playerUnits:
+    - unit: {fileID: 1774882220}
+      patrol: 0
+      cell: {x: 0, y: 0}
+      useOwnGoal: 1
+      ownGoal: {x: 9, y: 9}
+      timing: 0
+      spawnAfterTicks: 8
+      spawnAfterPlayerSteps: 12
+      maxHpOverride: 0
+      attackPowerOverride: 0
+      stepsPerTickOverride: 0
+      holdRounds: 0
+    enemyUnits:
+    - unit: {fileID: 2053665550}
+      patrol: 0
+      cell: {x: 0, y: 9}
+      useOwnGoal: 0
+      ownGoal: {x: 9, y: 9}
+      timing: 0
+      spawnAfterTicks: 8
+      spawnAfterPlayerSteps: 12
+      maxHpOverride: 50
+      attackPowerOverride: 50
+      stepsPerTickOverride: 0
+      holdRounds: 0
+    - unit: {fileID: 925701438}
+      patrol: 0
+      cell: {x: 9, y: 0}
+      useOwnGoal: 0
+      ownGoal: {x: 0, y: 9}
+      timing: 0
+      spawnAfterTicks: 8
+      spawnAfterPlayerSteps: 12
+      maxHpOverride: 50
+      attackPowerOverride: 50
+      stepsPerTickOverride: 0
+      holdRounds: 0
+    goal: {x: 9, y: 0}
+  - levelName: 6
+    playerUnits:
+    - unit: {fileID: 1774882220}
+      patrol: 0
+      cell: {x: 0, y: 0}
+      useOwnGoal: 1
+      ownGoal: {x: 9, y: 9}
+      timing: 0
+      spawnAfterTicks: 8
+      spawnAfterPlayerSteps: 12
+      maxHpOverride: 0
+      attackPowerOverride: 0
+      stepsPerTickOverride: 0
+      holdRounds: 0
+    enemyUnits:
+    - unit: {fileID: 2053665550}
+      patrol: 0
+      cell: {x: 0, y: 9}
+      useOwnGoal: 0
+      ownGoal: {x: 9, y: 9}
+      timing: 0
+      spawnAfterTicks: 8
+      spawnAfterPlayerSteps: 12
+      maxHpOverride: 50
+      attackPowerOverride: 50
+      stepsPerTickOverride: 0
+      holdRounds: 0
+    - unit: {fileID: 925701438}
+      patrol: 0
+      cell: {x: 9, y: 0}
+      useOwnGoal: 0
+      ownGoal: {x: 0, y: 9}
+      timing: 0
+      spawnAfterTicks: 8
+      spawnAfterPlayerSteps: 12
+      maxHpOverride: 50
+      attackPowerOverride: 50
+      stepsPerTickOverride: 0
+      holdRounds: 0
+    goal: {x: 9, y: 0}
   playerAgent: {fileID: 1774882220}
   enemyAgent: {fileID: 2053665550}
   enemyContactDamage: 30
   successPanel: {fileID: 2013791618}
   failPanel: {fileID: 1047852395}
   stepInterval: 0.25
+  turnGap: 0.25
+  turnCount: 0
   mapResetMode: 0
   logUnitsOnStart: 1
   _ticks: 0
@@ -4693,12 +4683,16 @@ MonoBehaviour:
     locked: 0
   priority: 0
   gridPos: {x: 9, y: 9}
-  stepsPerTick: 0.5
+  stepsPerTick: 2
+  holdRounds: 0
+  patrol: 0
+  debugElevation: 0
   _elementReaction:
     waterHealAmount: 25
     earthBlocksPath: 1
     windLiftHeight: 1
     fireDamage: 25
+    logElevation: 0
 --- !u!114 &2053665551
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -5389,6 +5383,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 8300000, guid: 0446bbee2b654a64fb4f9c8c63f2bddd, type: 3}
     - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stages.Array.size
+      value: 6
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
       propertyPath: windSpecialSprite
       value: 
       objectReference: {fileID: 21300000, guid: 15a2d710a28fda849bfd8e67913a86da, type: 3}
@@ -5417,6 +5415,14 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 8300000, guid: 493b31c2141ab2c4ca09dfdcb058fc84, type: 3}
     - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageDialoguePlayer
+      value: 
+      objectReference: {fileID: 540544817}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stages.Array.data[5].name
+      value: "\u9636\u6BB5 6"
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
       propertyPath: stages.Array.data[0].steps
       value: 18
       objectReference: {fileID: 0}
@@ -5437,6 +5443,18 @@ PrefabInstance:
       value: 25
       objectReference: {fileID: 0}
     - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stages.Array.data[5].steps
+      value: 25
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.size
+      value: 3
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stages.Array.data[0].enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
       propertyPath: stages.Array.data[1].enabled
       value: 1
       objectReference: {fileID: 0}
@@ -5453,8 +5471,48 @@ PrefabInstance:
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stages.Array.data[5].enabled
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
       propertyPath: stages.Array.data[0].weightFire
       value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stages.Array.data[0].weightWind
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stages.Array.data[5].weightFire
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stages.Array.data[5].weightWind
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stages.Array.data[5].weightWater
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stages.Array.data[0].weightGround
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stages.Array.data[5].weightGround
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[0].name
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[1].name
+      value: 2
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[2].name
+      value: 3
       objectReference: {fileID: 0}
     - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
       propertyPath: stages.Array.data[0].useCustomWeights
@@ -5474,6 +5532,10 @@ PrefabInstance:
       objectReference: {fileID: 0}
     - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
       propertyPath: stages.Array.data[4].useCustomWeights
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stages.Array.data[5].useCustomWeights
       value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
@@ -5569,12 +5631,60 @@ PrefabInstance:
       value: 8
       objectReference: {fileID: 0}
     - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[0].steps.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[1].steps.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[2].steps.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[3].steps.Array.size
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
       propertyPath: onStageBegin.m_PersistentCalls.m_Calls.Array.size
       value: 0
       objectReference: {fileID: 0}
     - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
       propertyPath: onAllStagesCleared.m_PersistentCalls.m_Calls.Array.size
       value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[0].steps.Array.data[0].text
+      value: "\u6216\u8BB8\u6211\u4EEC\u5E94\u8BE5\u591A\u5229\u7528\u571F\u5143\u7D20\uFF1F"
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[1].steps.Array.data[0].text
+      value: "\u4F60\u8BF4\u8FD9\u4E9B\u52A8\u7269\u7A76\u7ADF\u60F3\u53BB\u54EA\uFF1F"
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[2].steps.Array.data[0].text
+      value: "\u98CE\uFF01\u53EF\u4EE5\u5E26\u6211\u4EEC\u8DE8\u8FC7\u7FA4\u5C71\uFF01"
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[3].steps.Array.data[0].text
+      value: "\u4F60\u8BF4\u8FD9\u4E9B\u52A8\u7269\u5230\u5E95\u60F3\u53BB\u54EA\uFF1F"
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[0].steps.Array.data[0].focus
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[1].steps.Array.data[0].focus
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[2].steps.Array.data[0].focus
+      value: 1
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[3].steps.Array.data[0].focus
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
       propertyPath: onStageBegin.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
@@ -5597,8 +5707,16 @@ PrefabInstance:
       value: EndStageOne
       objectReference: {fileID: 0}
     - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[0].onFinished.m_PersistentCalls.m_Calls.Array.size
+      value: 0
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
       propertyPath: onAllStagesCleared.m_PersistentCalls.m_Calls.Array.data[0].m_TargetAssemblyTypeName
       value: StartButtonUI, Assembly-CSharp
+      objectReference: {fileID: 0}
+    - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: stageEndDialogues.Array.data[0].onFinished.m_PersistentCalls.m_Calls.Array.data[0].m_CallState
+      value: 2
       objectReference: {fileID: 0}
     - target: {fileID: 2500036331419152914, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
       propertyPath: onAllStagesCleared.m_PersistentCalls.m_Calls.Array.data[0].m_Arguments.m_ObjectArgumentAssemblyTypeName
@@ -5829,6 +5947,10 @@ PrefabInstance:
       value: 
       objectReference: {fileID: 1132070257}
     - target: {fileID: 8860394482522350340, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
+      propertyPath: finalDialogue
+      value: 
+      objectReference: {fileID: 540544817}
+    - target: {fileID: 8860394482522350340, guid: 2f50f816c4b14fc49bb3825f4bc96b57, type: 3}
       propertyPath: firstScaleStart
       value: 1.1
       objectReference: {fileID: 0}
@@ -6029,6 +6151,9 @@ PrefabInstance:
     - targetCorrespondingSourceObject: {fileID: 5803737980163529481, guid: 39b532762976d83458c4f23bc5395140, type: 3}
       insertIndex: -1
       addedObject: {fileID: 229976752}
+    - targetCorrespondingSourceObject: {fileID: 5803737980163529481, guid: 39b532762976d83458c4f23bc5395140, type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 890589496}
     m_AddedComponents:
     - targetCorrespondingSourceObject: {fileID: 1024454062491175096, guid: 39b532762976d83458c4f23bc5395140, type: 3}
       insertIndex: -1

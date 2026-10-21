@@ -16,6 +16,8 @@ public sealed class UnitSetup
 {
     [Tooltip("场景里的单位")]
     public PathAgent unit;
+    [Tooltip("巡逻模式：在起点和目标之间来回走，并且不参与结算")]
+    public bool patrol = false;
 
     [Tooltip("这一关的出发格")]
     public Vector2Int cell;
@@ -41,19 +43,20 @@ public sealed class UnitSetup
     public int attackPowerOverride = -1;
     public double stepsPerTickOverride = 0;
 
+    [Tooltip("到达目标后要驻守多少回合才算完成。0 = 到达即完成")]
+    public int holdRounds = 0;
+
+
     [NonSerialized] public bool spawned;   // 运行时用，别在 Inspector 里动
 }
 
 [Serializable]
-public sealed class SecondBoardLevel
+public class SecondBoardLevel
 {
-    public string levelName = "关卡";
-
-    [Tooltip("A 和 B 共同的目标格")]
-    public Vector2Int goal;
-
+    public string levelName = "1";
     public List<UnitSetup> playerUnits = new List<UnitSetup>();
     public List<UnitSetup> enemyUnits = new List<UnitSetup>();
+    public Vector2Int goal = new Vector2Int(9, 0);
 }
 public class BattleFlow : MonoBehaviour
 {
@@ -81,6 +84,16 @@ public class BattleFlow : MonoBehaviour
 
     [Header("回合节奏")]
     public float stepInterval = 0.25f;
+    [Tooltip("每一整轮（A 行动完 + B 行动完）之后额外停多少秒")]
+    public float turnGap = 0.5f;
+
+    [Header("回合计数")]
+    [Tooltip("当前关卡已经打完多少轮（A + B 各行动一次算一轮）")]
+    [SerializeField] private int turnCount;
+
+ 
+
+    public int TurnCount { get { return turnCount; } }
 
     [Header("调试")]
     public MapResetMode mapResetMode = MapResetMode.KeepCurrent;
@@ -109,6 +122,8 @@ public class BattleFlow : MonoBehaviour
 
     TileType[] _battleStartSnapshot;
     float _tickTimer;
+    float _gapTimer;
+    int _holdCount;
 
     readonly List<PathAgent> _allPlayers = new List<PathAgent>();
     readonly List<PathAgent> _allEnemies = new List<PathAgent>();
@@ -156,6 +171,13 @@ public class BattleFlow : MonoBehaviour
 
         if (Current != Phase.Battle) return;
 
+        // 轮间停顿：这段时间内什么 tick 都不跑
+        if (_gapTimer > 0f)
+        {
+            _gapTimer -= Time.deltaTime;
+            return;
+        }
+
         _tickTimer += Time.deltaTime;
 
         float interval = Mathf.Max(0.01f, stepInterval);
@@ -165,9 +187,15 @@ public class BattleFlow : MonoBehaviour
             _tickTimer -= interval;
             _ticks++;
             RunTick();
+
+            // 一轮打完 → 进入停顿，本帧不再跑下一轮
+            if (turnGap > 0f && Current == Phase.Battle)
+            {
+                _gapTimer = turnGap;
+                break;
+            }
         }
 
-        // 增援出场检查放在回合外面，出场后要等下一回合才行动
         TryActivatePending();
     }
 
@@ -196,15 +224,20 @@ public class BattleFlow : MonoBehaviour
             return;
         }
 
-        // 先把这个场景里所有单位藏起来
-        foreach (var u in _allPlayers) if (u != null) u.gameObject.SetActive(false);
-        foreach (var u in _allEnemies) if (u != null) u.gameObject.SetActive(false);
+        // 藏起场景里所有单位 —— 不只是池子里的。
+        // 那些还没配进任何关卡列表的单位也必须藏起来
+        PathAgent[] allInScene = FindObjectsOfType<PathAgent>(true);
+        foreach (PathAgent u in allInScene)
+        {
+            if (u != null) u.gameObject.SetActive(false);
+        }
 
         // 再按关卡摆出来
         ApplySetups(lv.playerUnits, lv.goal, true);
         ApplySetups(lv.enemyUnits, lv.goal, false);
 
         Current = Phase.PreBattle;
+        turnCount = 0;
         if (map != null) map.editable = true;
 
         Debug.Log($"BattleFlow: 载入关卡 {LevelIndex + 1}「{lv.levelName}」  A {lv.playerUnits.Count} 个 / " +
@@ -269,6 +302,11 @@ public class BattleFlow : MonoBehaviour
             {
                 u.gameObject.SetActive(true);
                 u.ResetToStart();
+                u.holdRounds = isPlayer ? Mathf.Max(0, s.holdRounds) : 0;
+                u.ResetHold();
+                u.patrol = s.patrol;
+                Vector2Int patrolAim = s.useOwnGoal ? s.ownGoal : goal;
+                u.SetPatrolPoints(s.cell, patrolAim);
             }
             else
             {
@@ -461,6 +499,7 @@ public class BattleFlow : MonoBehaviour
 
         Current = Phase.Battle;
         _tickTimer = 0f;
+        _gapTimer = 0f;
         _ticks = 0;
         _playerSteps = 0;
 
@@ -478,14 +517,17 @@ public class BattleFlow : MonoBehaviour
     // ─────────────────────────────────────────────
     void RunTick()
     {
-        // 起手判一次：可能开局就全都在终点了
-        if (AllPlayersAtGoal()) { ResolveRound(RoundResult.Success); return; }
-
         // ══ 所有 A 依次行动 ══
         foreach (PathAgent a in LevelPlayers())
         {
             if (a == null || !a.IsActive) continue;
-            if (AtGoal(a)) continue;                    // 已经在终点的跳过
+
+            if (AtGoal(a))
+            {
+                // 巡逻单位到达端点 → 掉头
+                if (a.patrol) a.SwapPatrolTarget();
+                continue;
+            }
 
             int steps = a.GetStepsThisTick();
 
@@ -505,36 +547,75 @@ public class BattleFlow : MonoBehaviour
             }
         }
 
-        // A 是不是全部到终点了
-        if (AllPlayersAtGoal()) { ResolveRound(RoundResult.Success); return; }
+        // ══ A 的驻守结算（递增 + 判断一起做）══
+        bool allSettled = true;
+        bool hasReal = false;
+
+        foreach (PathAgent a in LevelPlayers())
+        {
+            if (a == null || !a.IsActive) continue;
+            if (a.patrol) continue;                 // 巡逻单位不参与结算
+
+            hasReal = true;
+
+            if (!AtGoal(a))
+            {
+                a.ResetHold();
+                allSettled = false;
+                continue;
+            }
+
+            a.AddHold();                            // 到终点了 → 计数 +1
+
+            if (a.holdRounds > 0 && a.HoldCount < a.holdRounds)
+                allSettled = false;
+
+            Debug.Log($"[驻守] {a.name} {a.HoldCount}/{a.holdRounds}", a);
+        }
+
+        // ★ 回合数在这里加：和 HoldCount 紧挨着，中间没有 return
+        turnCount++;
+
+        if (allSettled && hasReal)
+        {
+            Debug.Log("BattleFlow: A 已全部就位", this);
+            ResolveRound(RoundResult.Success);
+            return;
+        }
 
         // ══ 所有 B 依次行动：每一步都朝当时最近的 A 走 ══
+        // ══ 所有 B 依次行动 ══
         foreach (PathAgent b in LevelEnemies())
         {
             if (b == null || !b.IsActive) continue;
+
+            // 巡逻的 B：到达端点就掉头
+            if (b.patrol && AtGoal(b)) b.SwapPatrolTarget();
 
             int steps = b.GetStepsThisTick();
 
             for (int i = 0; i < steps; i++)
             {
-                PathAgent target = FindNearestPlayer(b);
-                if (target == null) break;                  // 场上没有 A 可追
+                // 巡逻的 B 不追人，走自己的往返路线
+                if (!b.patrol)
+                {
+                    PathAgent target = FindNearestPlayer(b);
+                    if (target == null) break;
 
-                b.RetargetTo(target.GridPos);
+                    b.RetargetTo(target.GridPos);
+                }
 
                 if (!b.TryStep()) break;
 
-                // ★ B 也要触发元素效果（火焰扣血等）
                 b.ResolveElementEffect();
                 if (Current != Phase.Battle) return;
 
                 if (HandleContact(b)) return;
-
             }
         }
 
-        // ══ 兜底：全都停下了，但 A 没有全部到达 ══
-        if (!AnyUnitHasPath())
+        // ══ 兜底：双方都动不了，且没人在驻守 → 失败 ══
+        if (!AnyUnitHasPath() && !AnyPlayerHolding())
         {
             Debug.Log("BattleFlow: 双方都无法继续前进，而 A 没有全部到达终点", this);
             ResolveRound(RoundResult.Fail);
@@ -688,18 +769,45 @@ public class BattleFlow : MonoBehaviour
 
     bool AnyPlayerAlive()
     {
-        bool any = false;
-
         foreach (PathAgent a in LevelPlayers())
         {
             if (a == null) continue;
-            any = true;
+            if (a.patrol) continue;                  // ★ 巡逻单位死了不算输
 
             UnitHealth hp = HealthOf(a);
             if (hp == null || !hp.IsDead) return true;
         }
 
-        return !any;   // 一个 A 都没配的话，不算全灭
+        return false;
+    }
+
+    /// <summary>是否有 A 正在驻守（已到终点但还没守够回合）</summary>
+    bool AnyPlayerHolding()
+    {
+        foreach (PathAgent a in LevelPlayers())
+        {
+            if (a == null || !a.IsActive) continue;
+            if (a.patrol) continue;
+
+            if (AtGoal(a) && a.holdRounds > 0 && a.HoldCount < a.holdRounds)
+                return true;
+        }
+
+        return false;
+    }
+
+    bool AllPlayersSettled()
+    {
+        foreach (PathAgent a in LevelPlayers())
+        {
+            if (a == null || !a.IsActive) continue;
+            if (a.patrol) continue;                  // ★ 巡逻单位不算数
+
+            if (!AtGoal(a)) return false;
+            if (a.holdRounds > 0 && a.HoldCount < a.holdRounds) return false;
+        }
+
+        return true;
     }
 
     // ─────────────────────────────────────────────

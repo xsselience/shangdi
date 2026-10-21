@@ -3,6 +3,7 @@ using UnityEngine.Events;
 using Game.Board;
 using Assets.Scripts.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.Events;
 
 public class StartButtonUI : MonoBehaviour
 {
@@ -43,8 +44,8 @@ public class StartButtonUI : MonoBehaviour
     [SerializeField] private int currentChapter;
 
     [Header("全部通关后")]
-    [Tooltip("五章全部通关后显示的按钮。平时在场景里保持未勾选")]
-    [SerializeField] private GameObject endingButton;
+    [Tooltip("第五章第二棋盘打完之后要播的对话")]
+    [SerializeField] private IntroDialogue finalDialogue;
 
     [Tooltip("点击结束后要去的场景索引。0 = 开始场景")]
     [SerializeField] private int endingSceneIndex = 0;
@@ -188,17 +189,41 @@ public class StartButtonUI : MonoBehaviour
     {
         if (stage != Stage.SecondBoard)
         {
-            Debug.Log("StartButtonUI: 当前不在第二棋盘，忽略成功结算", this);
+            Debug.Log("StartButtonUI: 不是第二棋盘，忽略", this);
             return;
         }
 
-        // B 原地建营地 + A / B 归位，地图与已有营地保留
         if (battleFlow != null) battleFlow.ContinueToNextStage();
 
         if (currentChapter >= maxChapter)
         {
             Debug.Log("StartButtonUI: " + maxChapter + " 章全部完成", this);
             RunAllChaptersCleared();
+            return;
+        }
+
+        // ★ 这里插对话：刚打完的这一章，对应下标 currentChapter - 1
+        int finishedStage = currentChapter - 1;
+
+        DialogueSequence seq = finalDialogue != null
+            ? finalDialogue.StageSequence(finishedStage)
+            : null;
+
+        if (seq != null)
+        {
+            Debug.Log($"StartButtonUI: 第 {currentChapter} 章结束，播放对话「{seq.name}」", this);
+
+            int nextChapter = currentChapter + 1;
+
+            UnityAction onDone = null;
+            onDone = () =>
+            {
+                seq.onFinished.RemoveListener(onDone);
+                BeginChapter(nextChapter);
+            };
+
+            seq.onFinished.AddListener(onDone);
+            finalDialogue.Begin(seq);
             return;
         }
 
@@ -376,13 +401,13 @@ public class StartButtonUI : MonoBehaviour
     {
         Debug.Log("StartButtonUI: 全部章节通关", this);
 
-        if (endingButton == null)
+        if (finalDialogue == null)
         {
-            Debug.LogWarning("StartButtonUI: endingButton 未指定，通关后没有按钮出现", this);
+            Debug.LogWarning("StartButtonUI: finalDialogue 未指定，通关后不会出现对话", this);
             return;
         }
 
-        endingButton.SetActive(true);
+        finalDialogue.BeginEnding();       // ← 是 BeginEnding，不是 Begin
     }
 
     /// <summary>结束按钮接这个：回到开始场景</summary>

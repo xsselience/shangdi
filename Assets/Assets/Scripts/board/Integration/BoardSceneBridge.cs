@@ -97,6 +97,10 @@ namespace Game.Board
         [Tooltip("每进入一个阶段时触发，参数是阶段下标（0 起）")]
         public StageIndexEvent onStageBegin;
 
+        [Header("阶段结束时的对话（按阶段顺序，留空则该阶段不播）")]
+        [Tooltip("用来播放对话的 IntroDialogue")]
+        public IntroDialogue stageDialoguePlayer;
+
         [Tooltip("五个阶段全部走完时触发")]
         public UnityEvent onAllStagesCleared;
 
@@ -270,9 +274,6 @@ namespace Game.Board
                 currentStageIndex = FirstEnabledStage();
                 BuildStage();
 
-                Debug.Log("现有下屏棋盘已连接：关卡 " + level.LevelId + "，" + Board.Width + "×" + Board.Height +
-                          "，阶段 " + (currentStageIndex + 1) + "/" + StageCount +
-                          "，本阶段步数 " + Session.InitialSteps, this);
             }
             catch (Exception ex)
             {
@@ -289,13 +290,10 @@ namespace Game.Board
         {
             if (stages == null || stages.Length == 0)
             {
-                Debug.LogError("BoardSceneBridge: stages 是空的", this);
                 return;
             }
             if (index < 0 || index >= stages.Length)
             {
-                Debug.LogError("BoardSceneBridge: 阶段下标 " + index +
-                               " 越界（共 " + stages.Length + " 个）", this);
                 return;
             }
 
@@ -305,12 +303,10 @@ namespace Game.Board
 
             if (currentLevel == null)
             {
-                Debug.LogError("BoardSceneBridge: 还没有关卡，无法执行阶段", this);
                 return;
             }
 
             currentStageIndex = index;
-            Debug.Log("BoardSceneBridge: 进入阶段 " + (index + 1) + " —— " + StageName(index), this);
             BuildStage();
             RefreshViews();
         }
@@ -482,14 +478,20 @@ namespace Game.Board
         /// </summary>
         public void AdvanceStage()
         {
-            if (!autoAdvanceStages) return;
+            DoAdvanceStage();
+        }
 
+        private void DoAdvanceStage()
+        {
             int next = FindNextEnabledStage(currentStageIndex + 1);
 
             if (next < 0)
             {
-                Debug.Log("BoardSceneBridge: " + StageCount + " 个阶段全部完成。", this);
-                RunAllStagesCleared();
+                Debug.Log("BoardSceneBridge: 第 " + (currentStageIndex + 1) +
+                          " 阶段结束，无限重复这个阶段", this);
+
+                BuildStage();
+                RefreshViews();
                 return;
             }
 
